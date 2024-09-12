@@ -2,6 +2,7 @@ use num::complex::ComplexFloat;
 
 pub mod calc_wb;
 pub mod moa;
+pub mod ken;
 #[derive(PartialEq, PartialOrd, Debug, Clone)]
 pub struct ViktArm {
     pub weight: f32,
