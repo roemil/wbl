@@ -4,6 +4,7 @@ pub mod calc_wb;
 pub mod moa;
 pub mod ken;
 pub mod two_seater;
+pub mod four_seater;
 
 #[derive(PartialEq, Clone)]
 pub enum UseFuel {
@@ -15,6 +16,12 @@ pub enum UseFuel {
 pub struct ViktArm {
     pub weight: f32,
     pub lever: f32,
+}
+
+impl std::default::Default for ViktArm {
+    fn default() -> Self {
+        Self::new(0.0, 0.0)
+    }
 }
 
 impl ViktArm {
