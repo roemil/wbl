@@ -3,6 +3,14 @@ use num::complex::ComplexFloat;
 pub mod calc_wb;
 pub mod moa;
 pub mod ken;
+pub mod two_seater;
+
+#[derive(PartialEq, Clone)]
+pub enum UseFuel {
+    Yes,
+    No,
+}
+
 #[derive(PartialEq, PartialOrd, Debug, Clone)]
 pub struct ViktArm {
     pub weight: f32,
@@ -19,6 +27,7 @@ impl ViktArm {
     }
 }
 
+//ref: https://www.linkedin.com/pulse/short-formula-check-given-point-lies-inside-outside-polygon-ziemecki/
 fn is_inside_polygon(point: ViktArm, vertices: Vec<ViktArm>, valid_border: bool) -> bool {
     let mut sum = num::complex::Complex::new(0.0, 0.0);
 

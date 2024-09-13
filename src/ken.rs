@@ -19,6 +19,12 @@ pub struct KenBuilder {
     w_pax_right_back: f32,
 }
 
+impl std::default::Default for KenBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl KenBuilder {
     pub fn new() -> KenBuilder {
         KenBuilder {
