@@ -1,5 +1,8 @@
 use crate::{
-    calc_wb::CalcWeightAndBalance, is_inside_polygon, two_seater::{TwoSeater, TwoSeaterBuilder}, UseFuel, ViktArm
+    calc_wb::CalcWeightAndBalance,
+    is_inside_polygon,
+    two_seater::{TwoSeater, TwoSeaterBuilder},
+    UseFuel, ViktArm,
 };
 
 #[derive(Debug, Clone)]
@@ -11,9 +14,9 @@ pub struct Moa {
 }
 pub struct MoaBuilder {
     two_seater_builder: TwoSeaterBuilder,
-    bagage_back: f32,
-    bagage_front: f32,
-    bagage_wings: f32,
+    bagage_back: ViktArm,
+    bagage_front: ViktArm,
+    bagage_wings: ViktArm,
 }
 
 impl std::default::Default for MoaBuilder {
@@ -28,9 +31,9 @@ impl MoaBuilder {
         two_seater_builder.base_weight(ViktArm::new(453.5, 172.9));
         MoaBuilder {
             two_seater_builder,
-            bagage_back: 0.0,
-            bagage_front: 0.0,
-            bagage_wings: 0.0,
+            bagage_back: ViktArm::default(),
+            bagage_front: ViktArm::default(),
+            bagage_wings: ViktArm::default(),
         }
     }
 
@@ -39,15 +42,15 @@ impl MoaBuilder {
         self
     }
     pub fn bagage_back(mut self, bagage_back: f32) -> MoaBuilder {
-        self.bagage_back = bagage_back;
+        self.bagage_back = ViktArm::new(bagage_back, 280.0);
         self
     }
     pub fn bagage_front(mut self, bagage_front: f32) -> MoaBuilder {
-        self.bagage_front = bagage_front;
+        self.bagage_front = ViktArm::new(bagage_front, 252.0);
         self
     }
     pub fn bagage_wings(mut self, bagage_wings: f32) -> MoaBuilder {
-        self.bagage_wings = bagage_wings;
+        self.bagage_wings = ViktArm::new(bagage_wings, 202.0);
         self
     }
     pub fn pic(mut self, w_pic: f32) -> MoaBuilder {
@@ -62,9 +65,9 @@ impl MoaBuilder {
     pub fn build(self) -> Moa {
         Moa {
             two_seater: self.two_seater_builder.build(),
-            bagage_back: ViktArm::new(self.bagage_back, 252.0),
-            bagage_front: ViktArm::new(self.bagage_front, 252.0),
-            bagage_wings: ViktArm::new(self.bagage_wings, 202.5),
+            bagage_back: self.bagage_back,
+            bagage_front: self.bagage_front,
+            bagage_wings: self.bagage_wings,
         }
     }
 }
