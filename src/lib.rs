@@ -1,10 +1,36 @@
 use num::complex::ComplexFloat;
 
 pub mod calc_wb;
-pub mod moa;
-pub mod ken;
-pub mod two_seater;
 pub mod four_seater;
+pub mod ken;
+pub mod moa;
+pub mod two_seater;
+
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+pub enum Kind {
+    Base,
+    Fuel,
+    Bagage,
+    BagageFront,
+    BagageBack,
+    BagageWings,
+    Pilot,
+    CoPilot,
+    PaxLeftBack,
+    PaxRightBack,
+}
+
+fn is_value_within_weight_limit(
+    properties: &std::collections::HashMap<Kind, ViktArm>,
+    kind: Kind,
+    limit: f32,
+) -> bool {
+    let mut is_item_within_limit = true;
+    if let Some(item) = properties.get(&kind) {
+        is_item_within_limit = item.weight <= limit;
+    }
+    is_item_within_limit
+}
 
 #[derive(PartialEq, Clone)]
 pub enum UseFuel {

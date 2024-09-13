@@ -1,22 +1,13 @@
 use crate::{
-    calc_wb::CalcWeightAndBalance,
-    is_inside_polygon,
-    two_seater::{TwoSeater, TwoSeaterBuilder},
-    UseFuel, ViktArm,
+    calc_wb::CalcWeightAndBalance, is_inside_polygon, is_value_within_weight_limit, Kind, ViktArm
 };
 
 #[derive(Debug, Clone)]
 pub struct Moa {
-    two_seater: TwoSeater,
-    bagage_back: ViktArm,
-    bagage_front: ViktArm,
-    bagage_wings: ViktArm,
+    properties: std::collections::HashMap<Kind, ViktArm>,
 }
 pub struct MoaBuilder {
-    two_seater_builder: TwoSeaterBuilder,
-    bagage_back: ViktArm,
-    bagage_front: ViktArm,
-    bagage_wings: ViktArm,
+    properties: std::collections::HashMap<Kind, ViktArm>,
 }
 
 impl std::default::Default for MoaBuilder {
@@ -27,98 +18,113 @@ impl std::default::Default for MoaBuilder {
 
 impl MoaBuilder {
     pub fn new() -> MoaBuilder {
-        let mut two_seater_builder = TwoSeaterBuilder::default();
-        two_seater_builder.base_weight(ViktArm::new(453.5, 172.9));
-        MoaBuilder {
-            two_seater_builder,
-            bagage_back: ViktArm::default(),
-            bagage_front: ViktArm::default(),
-            bagage_wings: ViktArm::default(),
-        }
+        let mut properties = std::collections::HashMap::<Kind, ViktArm>::default();
+        properties.insert(Kind::Base, ViktArm::new(453.5, 172.9));
+        MoaBuilder { properties }
     }
 
     pub fn fuel(mut self, fuel: f32) -> MoaBuilder {
-        self.two_seater_builder.fuel(ViktArm::new(fuel, 160.0));
+        self.properties
+            .insert(Kind::Fuel, ViktArm::new(fuel, 160.0));
         self
     }
     pub fn bagage_back(mut self, bagage_back: f32) -> MoaBuilder {
-        self.bagage_back = ViktArm::new(bagage_back, 280.0);
+        self.properties
+            .insert(Kind::BagageBack, ViktArm::new(bagage_back, 280.0));
         self
     }
     pub fn bagage_front(mut self, bagage_front: f32) -> MoaBuilder {
-        self.bagage_front = ViktArm::new(bagage_front, 252.0);
+        self.properties
+            .insert(Kind::BagageFront, ViktArm::new(bagage_front, 252.0));
         self
     }
     pub fn bagage_wings(mut self, bagage_wings: f32) -> MoaBuilder {
-        self.bagage_wings = ViktArm::new(bagage_wings, 202.0);
+        self.properties
+            .insert(Kind::BagageWings, ViktArm::new(bagage_wings, 202.0));
         self
     }
     pub fn pic(mut self, w_pic: f32) -> MoaBuilder {
-        self.two_seater_builder.pic(ViktArm::new(w_pic, 208.5));
+        self.properties
+            .insert(Kind::Pilot, ViktArm::new(w_pic, 208.5));
         self
     }
     pub fn pax(mut self, pax: f32) -> MoaBuilder {
-        self.two_seater_builder.pax(ViktArm::new(pax, 208.5));
+        self.properties
+            .insert(Kind::CoPilot, ViktArm::new(pax, 208.5));
         self
     }
 
     pub fn build(self) -> Moa {
         Moa {
-            two_seater: self.two_seater_builder.build(),
-            bagage_back: self.bagage_back,
-            bagage_front: self.bagage_front,
-            bagage_wings: self.bagage_wings,
+            properties: self.properties,
         }
     }
 }
 
 impl Moa {
-    fn calc_wb_use_fuel(&self, use_fuel: UseFuel) -> ViktArm {
-        let total_w = self.two_seater.sum_weight(use_fuel.clone())
-            + self.bagage_back.weight
-            + self.bagage_front.weight
-            + self.bagage_wings.weight;
-        assert!(total_w > 0.0);
-        let total_torque = self.two_seater.sum_torque(use_fuel)
-            + self.bagage_back.torque()
-            + self.bagage_front.torque()
-            + self.bagage_wings.torque();
-
-        ViktArm {
-            weight: total_w,
-            lever: total_torque / total_w,
-        }
-    }
-
     fn is_max_wing_load_ok(&self) -> bool {
-        self.two_seater.base_weight.weight
-            + self.two_seater.pic.weight
-            + self.two_seater.pax.weight
-            + self.bagage_back.weight
+        let properties_of_interest = [
+            Kind::Base,
+            Kind::Pilot,
+            Kind::CoPilot,
+            Kind::BagageBack,
+            Kind::BagageFront,
+        ];
+        self.properties
+            .iter()
+            .filter(|(k, _)| properties_of_interest.contains(k))
+            .map(|(_, wb)| wb.weight)
+            .sum::<f32>()
             <= 660.0
     }
 
     fn is_mtow_ok(&self) -> bool {
-        self.calc_wb().weight <= 750.0
+        self.properties.iter().map(|(_, wb)| wb.weight).sum::<f32>() <= 750.0
     }
 
     fn is_zero_fuel_ok(&self) -> bool {
-        let zero_fuel_point = self.calc_wb_use_fuel(UseFuel::No);
+        let (total_weight, total_torque) = self
+            .properties
+            .iter()
+            .filter(|(kind, _)| **kind != Kind::Fuel)
+            .fold((0.0_f32, 0.0_f32), |acc, (_, wb)| {
+                (acc.0 + wb.weight, acc.1 + wb.torque())
+            });
+        let zero_fuel_point = ViktArm::new(total_weight, total_torque / total_weight);
         is_inside_polygon(zero_fuel_point, self.get_polygon(), false)
     }
 
     fn is_bagage_ok(&self) -> bool {
-        self.bagage_back.weight <= 15.0 && self.bagage_front.weight <= 1.0
+        is_value_within_weight_limit(&self.properties, Kind::BagageBack, 15.0)
+            && is_value_within_weight_limit(&self.properties, Kind::BagageFront, 1.0)
     }
 
     fn is_bagage_in_wings_ok(&self) -> bool {
-        self.bagage_wings.weight <= 40.0
+        let mut is_bagage_wings_is_ok = true;
+        if let Some(bagage_wings) = self.properties.get(&Kind::BagageWings) {
+            is_bagage_wings_is_ok = bagage_wings.weight <= 40.0;
+        }
+        is_bagage_wings_is_ok
+    }
+
+    fn get_total_weights(&self) -> f32 {
+        self.properties.iter().map(|(_, wb)| wb.weight).sum()
+    }
+    fn get_total_torque(&self) -> f32 {
+        self.properties
+            .iter()
+            .map(|(_, wb)| wb.torque())
+            .sum::<f32>()
     }
 }
 
 impl CalcWeightAndBalance for Moa {
-    fn calc_wb(&self) -> ViktArm {
-        self.calc_wb_use_fuel(UseFuel::Yes)
+    fn calc_weight_and_balance(&self) -> ViktArm {
+        let total_weight = self.get_total_weights();
+        ViktArm {
+            weight: total_weight,
+            lever: self.get_total_torque() / total_weight,
+        }
     }
     fn get_polygon(&self) -> Vec<ViktArm> {
         vec![
@@ -131,7 +137,6 @@ impl CalcWeightAndBalance for Moa {
         ]
     }
     fn is_weight_and_balance_ok(&self) -> bool {
-        let calc = self.calc_wb();
         if !self.is_mtow_ok()
             || !self.is_max_wing_load_ok()
             || !self.is_bagage_in_wings_ok()
@@ -140,6 +145,7 @@ impl CalcWeightAndBalance for Moa {
             return false;
         }
 
+        let calc = self.calc_weight_and_balance();
         is_inside_polygon(calc, self.get_polygon(), false) && self.is_zero_fuel_ok()
     }
 }

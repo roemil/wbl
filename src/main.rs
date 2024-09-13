@@ -6,7 +6,7 @@ fn main() {
         .pic(70.0)
         .bagage_wings(40.0)
         .build();
-    let moa_calc = moa.clone().calc_wb();
+    let moa_calc = moa.clone().calc_weight_and_balance();
     println!(
         "Moa lever: {}, Moa weight: {}",
         moa_calc.lever, moa_calc.weight

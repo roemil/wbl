@@ -1,86 +1,94 @@
 use crate::{
-    calc_wb::CalcWeightAndBalance,
-    four_seater::{FourSeater, FourSeaterBuilder},
-    is_inside_polygon,
-    ViktArm,
+    calc_wb::CalcWeightAndBalance, is_inside_polygon, Kind, ViktArm
 };
 
-#[derive(Debug, Clone)]
 pub struct Ken {
-    four_seater: FourSeater,
-    bagage: ViktArm,
+    properties: std::collections::HashMap<Kind, ViktArm>,
 }
 
 #[derive(Default)]
 pub struct KenBuilder {
-    four_seater_builder: FourSeaterBuilder,
-    bagage: f32,
+    properties: std::collections::HashMap<Kind, ViktArm>,
 }
 
 impl KenBuilder {
     pub fn new() -> KenBuilder {
-        let mut four_seater_builder = FourSeaterBuilder::default();
-        four_seater_builder.base_weight(ViktArm::new(685.2, 219.4));
-        KenBuilder {
-            four_seater_builder,
-            bagage: 0.0,
-        }
+       let mut properties = std::collections::HashMap::<Kind, ViktArm>::default();
+       properties.insert(Kind::Base, ViktArm::new(685.2, 219.4));
+        KenBuilder { properties }
     }
 
     pub fn fuel(mut self, fuel: f32) -> KenBuilder {
-        self.four_seater_builder.fuel(ViktArm::new(fuel, 241.3));
+        self.properties
+            .insert(Kind::Fuel, ViktArm::new(fuel, 241.3));
         self
     }
     pub fn bagage(mut self, bagage: f32) -> KenBuilder {
-        self.bagage = bagage;
+        self.properties
+            .insert(Kind::Bagage, ViktArm::new(bagage, 362.7));
         self
     }
     pub fn pic(mut self, w_pic: f32) -> KenBuilder {
-        self.four_seater_builder.pic(ViktArm::new(w_pic, 204.4));
+        self.properties
+            .insert(Kind::Pilot, ViktArm::new(w_pic, 204.4));
         self
     }
-    pub fn pax_front(mut self, pax: f32) -> KenBuilder {
-        self.four_seater_builder.pax_front(ViktArm::new(pax, 204.4));
+    pub fn copilot(mut self, pax: f32) -> KenBuilder {
+        self.properties
+            .insert(Kind::CoPilot, ViktArm::new(pax, 204.4));
         self
     }
     pub fn pax_left_back(mut self, pax: f32) -> KenBuilder {
-        self.four_seater_builder
-            .pax_left_back(ViktArm::new(pax, 300.0));
+        self.properties
+            .insert(Kind::PaxLeftBack, ViktArm::new(pax, 300.0));
         self
     }
     pub fn pax_right_back(mut self, pax: f32) -> KenBuilder {
-        self.four_seater_builder
-            .pax_right_back(ViktArm::new(pax, 300.0));
+        self.properties
+            .insert(Kind::PaxRightBack, ViktArm::new(pax, 300.0));
         self
     }
 
     pub fn build(self) -> Ken {
         Ken {
-            four_seater: self.four_seater_builder.build(),
-            bagage: ViktArm::new(self.bagage, 362.7),
+            properties: self.properties,
         }
     }
 }
 
 impl Ken {
     fn is_mtow_ok(&self) -> bool {
-        self.calc_wb().weight <= 1055.0
+        self.calc_weight_and_balance().weight <= 1055.0
     }
 
     fn is_bagage_ok(&self) -> bool {
-        self.bagage.weight <= 15.0
+        if let Some(bagage) = self.properties.get(&Kind::Bagage) {
+            return bagage.weight <= 15.0;
+        }
+        true
     }
     fn is_fuel_ok(&self) -> bool {
-        self.four_seater.fuel.weight <= 129.0
+        if let Some(fuel) = self.properties.get(&Kind::Fuel) {
+            return fuel.weight <= 15.0;
+        }
+        true
     }
 }
 
 impl CalcWeightAndBalance for Ken {
-    fn calc_wb(&self) -> ViktArm {
-        let total_w = self.four_seater.sum_weight() + self.bagage.weight;
+    fn calc_weight_and_balance(&self) -> ViktArm {
+        let total_w = self
+            .properties
+            .iter()
+            .map(|(_, wb)| wb.weight)
+            .sum();
         assert!(total_w > 0.0);
 
-        let total_torque = self.four_seater.sum_torque() + self.bagage.torque();
+        let total_torque = self
+            .properties
+            .iter()
+            .map(|(_, wb)| wb.torque())
+            .sum::<f32>();
 
         ViktArm {
             weight: total_w,
@@ -99,7 +107,7 @@ impl CalcWeightAndBalance for Ken {
         ]
     }
     fn is_weight_and_balance_ok(&self) -> bool {
-        let calc = self.calc_wb();
+        let calc = self.calc_weight_and_balance();
         if !self.is_mtow_ok() || !self.is_bagage_ok() || !self.is_fuel_ok() {
             return false;
         }
@@ -121,7 +129,7 @@ mod tests {
     fn w_and_b_nok() {
         let ken = KenBuilder::new()
             .pic(70.0)
-            .pax_front(80.0)
+            .copilot(80.0)
             .pax_left_back(80.0)
             .bagage(23.0)
             .fuel(129.0)
