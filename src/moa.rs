@@ -140,9 +140,7 @@ impl CalcWeightAndBalance for Moa {
             return false;
         }
 
-        let points = self.get_polygon();
-
-        is_inside_polygon(calc, points, false) && self.is_zero_fuel_ok()
+        is_inside_polygon(calc, self.get_polygon(), false) && self.is_zero_fuel_ok()
     }
 }
 
