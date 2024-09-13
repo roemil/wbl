@@ -92,8 +92,8 @@ impl Moa {
 
     fn is_max_wing_load_ok(&self) -> bool {
         self.two_seater.base_weight.weight
-            + self.two_seater.w_pic.weight
-            + self.two_seater.w_pax.weight
+            + self.two_seater.pic.weight
+            + self.two_seater.pax.weight
             + self.bagage_back.weight
             <= 660.0
     }
