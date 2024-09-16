@@ -1,27 +1,10 @@
-use serde::{Deserialize, Serialize};
-use std::error::Error;
 use std::hash::Hash;
-use std::io::{BufRead, BufReader};
+use std::io::BufReader;
 use std::{collections::HashMap, fs::File};
 use wbl::{
-    calc_wb::CalcWeightAndBalance, is_inside_polygon, ken::KenBuilder, moa::Moa, Kind, ViktArm,
+    calc_wb::CalcWeightAndBalance, moa::Moa, Kind, ViktArm,
 };
-use wbl::{MoaConfig, PlaneConfigs};
-
-fn get_moa_config() -> MoaConfig {
-    let config = HashMap::from([
-        (Kind::Base, 172.9),
-        (Kind::Fuel, 160.0),
-        (Kind::BagageBack, 280.0),
-        (Kind::BagageFront, 252.0),
-        (Kind::BagageWings, 202.0),
-        (Kind::Pilot, 208.5),
-        (Kind::CoPilot, 208.5),
-    ]);
-    let mut moaconfig = MoaConfig::new();
-    moaconfig.config = config;
-    moaconfig
-}
+use wbl::{update_weight, MoaConfig, PlaneConfigs};
 
 fn get_moa_weights() -> MoaConfig {
     let config = HashMap::from([
@@ -49,12 +32,10 @@ fn read_from_json_file() -> Result<PlaneConfigs, String> {
     let file = File::open("./src/config.json").expect("File not found");
     let reader = BufReader::new(file);
     let jsons = serde_json::Deserializer::from_reader(reader).into_iter::<PlaneConfigs>();
-    let mut planes = PlaneConfigs::default();
     for json in jsons {
         println!("json: {:?}", json);
         if let Ok(planes_json) = json {
-            planes = planes_json;
-            return Ok(planes);
+            return Ok(planes_json);
         }
     }
     Err("No plane config found".to_string())
@@ -84,7 +65,7 @@ fn main() -> Result<(), String> {
     println!("Is MOA config ok? {}", moa.is_weight_and_balance_ok());
     println!("Point: {:?}", moa.calc_weight_and_balance());
 
-    let _ = moa.update_weight(Kind::CoPilot, 500.0);
+    let _ = update_weight(&mut moa.properties, Kind::CoPilot, 500.0);
     println!("Is MOA config ok? {}", moa.is_weight_and_balance_ok());
     println!("Point: {:?}", moa.calc_weight_and_balance());
     Ok(())

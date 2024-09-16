@@ -172,3 +172,11 @@ impl MoaConfig {
         MoaConfig::default()
     }
 }
+
+pub fn update_weight(airplane_properties : &mut HashMap<Kind, ViktArm>, kind : Kind, weight : f32) -> Result<(), String>{
+    if let Some(arm) = airplane_properties.get_mut(&kind) {
+        arm.weight = weight;
+        return Ok(());
+    }
+    Err(format!("Key ({:?}) not present in airplane", kind).to_string())
+}

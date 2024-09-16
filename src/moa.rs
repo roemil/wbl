@@ -1,14 +1,12 @@
-use std::fmt::format;
-
 use crate::{
-    calc_wb::CalcWeightAndBalance, is_inside_polygon, is_value_within_weight_limit, Kind, MoaJson, ViktArm
+    calc_wb::CalcWeightAndBalance, is_inside_polygon, is_value_within_weight_limit, Kind, ViktArm
 };
 
 type Properties = std::collections::HashMap<Kind, ViktArm>;
 type Verticies = [ViktArm; 6];
 #[derive(Debug, Clone)]
 pub struct Moa {
-    properties: Properties,
+    pub properties: Properties,
     vertices: [ViktArm; 6],
 }
 
@@ -78,13 +76,6 @@ impl Moa {
             .iter()
             .map(|(_, wb)| wb.torque())
             .sum::<f32>()
-    }
-    pub fn update_weight(&mut self, kind : Kind, weight : f32) -> Result<(), String>{
-        if let Some(arm) = self.properties.get_mut(&kind) {
-            arm.weight = weight;
-            return Ok(());
-        }
-        Err(format!("Key ({:?}) not present in MOA", kind).to_string())
     }
 }
 
