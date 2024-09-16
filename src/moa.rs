@@ -1,9 +1,8 @@
 use crate::{
-    calc_wb::CalcWeightAndBalance, is_inside_polygon, is_value_within_weight_limit, Kind, ViktArm
+    calc_wb::CalcWeightAndBalance, is_inside_polygon, is_value_within_weight_limit, Kind, Properties, Verticies, ViktArm
 };
 
-type Properties = std::collections::HashMap<Kind, ViktArm>;
-type Verticies = [ViktArm; 6];
+
 #[derive(Debug, Clone)]
 pub struct Moa {
     pub properties: Properties,

@@ -7,6 +7,9 @@ pub mod calc_wb;
 pub mod ken;
 pub mod moa;
 
+type Properties = std::collections::HashMap<Kind, ViktArm>;
+type Verticies = [ViktArm; 6];
+
 #[derive(Default, PartialEq, Eq, Hash, Debug, Clone, Copy, PartialOrd, Ord)]
 pub enum Kind {
     #[default]
@@ -120,6 +123,7 @@ pub struct KenJson {
     co_pilot: f32,
     passenger_left: f32,
     passenger_right: f32,
+    vortices: [[f32; 2]; 6]
 }
 
 impl Default for MoaConfig {

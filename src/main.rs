@@ -1,9 +1,8 @@
 use std::hash::Hash;
 use std::io::BufReader;
 use std::{collections::HashMap, fs::File};
-use wbl::{
-    calc_wb::CalcWeightAndBalance, moa::Moa, Kind, ViktArm,
-};
+use wbl::ken::{Ken, KenConfig};
+use wbl::{calc_wb::CalcWeightAndBalance, moa::Moa, Kind, ViktArm};
 use wbl::{update_weight, MoaConfig, PlaneConfigs};
 
 fn get_moa_weights() -> MoaConfig {
@@ -19,6 +18,21 @@ fn get_moa_weights() -> MoaConfig {
     let mut moaconfig = MoaConfig::new();
     moaconfig.config = config;
     moaconfig
+}
+
+fn get_ken_weights() -> KenConfig {
+    let config = HashMap::from([
+        (Kind::Base, 685.2),
+        (Kind::Fuel, 129.0),
+        (Kind::Bagage, 20.0),
+        (Kind::Pilot, 70.0),
+        (Kind::CoPilot, 0.0),
+        (Kind::PaxLeftBack, 0.0),
+        (Kind::PaxRightBack, 0.0),
+    ]);
+    let mut ken_config = KenConfig::new();
+    ken_config.config = config;
+    ken_config
 }
 
 pub fn iterate_maps<'a: 'b, 'b, K: Eq + Hash, V>(
@@ -54,6 +68,15 @@ fn main() -> Result<(), String> {
             props
         },
     );
+    let ken_config = KenConfig::from(planes.ken_json);
+    let ken_weights = get_ken_weights();
+    let ken_properties = iterate_maps(&ken_config.config, &ken_weights.config).fold(
+        HashMap::new(),
+        move |mut props, (k, a, w)| {
+            props.insert(*k, ViktArm::new(*w, *a));
+            props
+        },
+    );
 
     /*
     TODO:
@@ -68,5 +91,13 @@ fn main() -> Result<(), String> {
     let _ = update_weight(&mut moa.properties, Kind::CoPilot, 500.0);
     println!("Is MOA config ok? {}", moa.is_weight_and_balance_ok());
     println!("Point: {:?}", moa.calc_weight_and_balance());
+
+    let mut ken = Ken::new(ken_properties, ken_config.vortices);
+    println!("Is KEN config ok? {}", ken.is_weight_and_balance_ok());
+    println!("Point: {:?}", ken.calc_weight_and_balance());
+
+    let _ = update_weight(&mut ken.properties, Kind::CoPilot, 500.0);
+    println!("Is KEN config ok? {}", ken.is_weight_and_balance_ok());
+    println!("Point: {:?}", ken.calc_weight_and_balance());
     Ok(())
 }
