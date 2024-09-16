@@ -1,6 +1,4 @@
-use crate::{
-    calc_wb::CalcWeightAndBalance, is_inside_polygon, Kind, ViktArm
-};
+use crate::{calc_wb::CalcWeightAndBalance, is_inside_polygon, Kind, ViktArm};
 
 pub struct Ken {
     properties: std::collections::HashMap<Kind, ViktArm>,
@@ -13,8 +11,8 @@ pub struct KenBuilder {
 
 impl KenBuilder {
     pub fn new() -> KenBuilder {
-       let mut properties = std::collections::HashMap::<Kind, ViktArm>::default();
-       properties.insert(Kind::Base, ViktArm::new(685.2, 219.4));
+        let mut properties = std::collections::HashMap::<Kind, ViktArm>::default();
+        properties.insert(Kind::Base, ViktArm::new(685.2, 219.4));
         KenBuilder { properties }
     }
 
@@ -28,7 +26,7 @@ impl KenBuilder {
             .insert(Kind::Bagage, ViktArm::new(bagage, 362.7));
         self
     }
-    pub fn pic(mut self, w_pic: f32) -> KenBuilder {
+    pub fn pilot(mut self, w_pic: f32) -> KenBuilder {
         self.properties
             .insert(Kind::Pilot, ViktArm::new(w_pic, 204.4));
         self
@@ -73,15 +71,22 @@ impl Ken {
         }
         true
     }
+    // TODO: Config can be read from json file
+    fn get_polygon(&self) -> [ViktArm; 6] {
+        [
+            ViktArm::new(685.2, 210.8),
+            ViktArm::new(885.0, 210.8),
+            ViktArm::new(1055.0, 221.0),
+            ViktArm::new(1055.0, 236.2),
+            ViktArm::new(1055.0, 236.2),
+            ViktArm::new(685.2, 236.2),
+        ]
+    }
 }
 
 impl CalcWeightAndBalance for Ken {
     fn calc_weight_and_balance(&self) -> ViktArm {
-        let total_w = self
-            .properties
-            .iter()
-            .map(|(_, wb)| wb.weight)
-            .sum();
+        let total_w = self.properties.iter().map(|(_, wb)| wb.weight).sum();
         assert!(total_w > 0.0);
 
         let total_torque = self
@@ -95,17 +100,6 @@ impl CalcWeightAndBalance for Ken {
             lever: total_torque / total_w,
         }
     }
-    // TODO: Config can be read from json file
-    fn get_polygon(&self) -> Vec<ViktArm> {
-        vec![
-            ViktArm::new(685.2, 210.8),
-            ViktArm::new(885.0, 210.8),
-            ViktArm::new(1055.0, 221.0),
-            ViktArm::new(1055.0, 236.2),
-            ViktArm::new(1055.0, 236.2),
-            ViktArm::new(685.2, 236.2),
-        ]
-    }
     fn is_weight_and_balance_ok(&self) -> bool {
         let calc = self.calc_weight_and_balance();
         if !self.is_mtow_ok() || !self.is_bagage_ok() || !self.is_fuel_ok() {
@@ -114,7 +108,7 @@ impl CalcWeightAndBalance for Ken {
 
         let points = self.get_polygon();
 
-        is_inside_polygon(calc, points, false)
+        is_inside_polygon(calc, &points, false)
     }
 }
 #[cfg(test)]
@@ -128,7 +122,7 @@ mod tests {
     #[test]
     fn w_and_b_nok() {
         let ken = KenBuilder::new()
-            .pic(70.0)
+            .pilot(70.0)
             .copilot(80.0)
             .pax_left_back(80.0)
             .bagage(23.0)

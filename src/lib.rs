@@ -1,13 +1,19 @@
+use std::collections::HashMap;
+
 use num::complex::ComplexFloat;
+use serde::{Deserialize, Serialize};
 
 pub mod calc_wb;
 pub mod four_seater;
 pub mod ken;
 pub mod moa;
 pub mod two_seater;
+pub mod plane;
 
-#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+#[derive(Default, PartialEq, Eq, Hash, Debug, Clone, Copy, PartialOrd, Ord)]
 pub enum Kind {
+    #[default]
+    NoValue,
     Base,
     Fuel,
     Bagage,
@@ -61,7 +67,7 @@ impl ViktArm {
 }
 
 //ref: https://www.linkedin.com/pulse/short-formula-check-given-point-lies-inside-outside-polygon-ziemecki/
-fn is_inside_polygon(point: ViktArm, vertices: Vec<ViktArm>, valid_border: bool) -> bool {
+pub fn is_inside_polygon(point: ViktArm, vertices: &[ViktArm;6], valid_border: bool) -> bool {
     let mut sum = num::complex::Complex::new(0.0, 0.0);
 
     for i in 1..vertices.len() + 1 {
@@ -90,4 +96,80 @@ fn is_point_in_segment(p: &ViktArm, p0: &ViktArm, p1: &ViktArm) -> bool {
     (det == 0.0 && prod < 0.0)
         || (p0.weight == 0.0 && p0.lever == 0.0)
         || (p1.weight == 0.0 && p1.lever == 0.0)
+}
+
+
+
+pub struct MoaConfig {
+    pub config: std::collections::HashMap<Kind, f32>,
+    pub vortices: [ViktArm; 6],
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct PlaneConfigs {
+    pub moa_json: MoaJson,
+    pub ken_json: KenJson,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct MoaJson {
+    base: f32,
+    fuel: f32,
+    bagage_back: f32,
+    bagage_front: f32,
+    bagage_wings: f32,
+    pilot: f32,
+    co_pilot: f32,
+    vortices: [[f32;2];6]
+}
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct KenJson {
+    base: f32,
+    fuel: f32,
+    bagage: f32,
+    pilot: f32,
+    co_pilot: f32,
+    passenger_left: f32,
+    passenger_right: f32,
+}
+
+impl Default for MoaConfig {
+    fn default() -> MoaConfig {
+        MoaConfig {
+            config: HashMap::new(),
+            vortices: [
+                ViktArm::new(490.0, 171.2),
+                ViktArm::new(600.0, 171.2),
+                ViktArm::new(750.0, 179.2),
+                ViktArm::new(750.0, 184.0),
+                ViktArm::new(600.0, 184.0),
+                ViktArm::new(490.0, 184.0),
+            ],
+        }
+    }
+}
+
+impl From<MoaJson> for MoaConfig {
+    fn from(value: MoaJson) -> Self {
+        let mut moa = MoaConfig::default();
+        moa.config.insert(Kind::Base, value.base);
+        moa.config.insert(Kind::Fuel, value.fuel);
+        moa.config.insert(Kind::BagageBack, value.bagage_back);
+        moa.config.insert(Kind::BagageFront, value.bagage_front);
+        moa.config.insert(Kind::BagageWings, value.bagage_wings);
+        moa.config.insert(Kind::Pilot, value.pilot);
+        moa.config.insert(Kind::CoPilot, value.co_pilot);
+
+        for (i, vortex) in value.vortices.iter().enumerate() {
+            moa.vortices[i] = ViktArm::new(vortex[0], vortex[1]);
+        }
+
+        moa
+    }
+}
+
+impl MoaConfig {
+    pub fn new() -> MoaConfig {
+        MoaConfig::default()
+    }
 }
