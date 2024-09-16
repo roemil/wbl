@@ -63,6 +63,7 @@ fn read_from_json_file() -> Result<PlaneConfigs, String> {
 fn main() -> Result<(), String> {
     let planes = read_from_json_file()?;
     let arm = MoaConfig::from(planes.moa_json);
+    // Weights are inputs from user
     let weights = get_moa_weights();
 
     let moa_properties = iterate_maps(&arm.config, &weights.config).fold(
@@ -75,12 +76,15 @@ fn main() -> Result<(), String> {
 
     /*
     TODO:
-    1. Update a config with new weights
-    2. Front end TUI
-    3. clean up
+    1. Front end TUI
+    2. clean up
      */
 
-    let moa = Moa::new(moa_properties, arm.vortices);
+    let mut moa = Moa::new(moa_properties, arm.vortices);
+    println!("Is MOA config ok? {}", moa.is_weight_and_balance_ok());
+    println!("Point: {:?}", moa.calc_weight_and_balance());
+
+    let _ = moa.update_weight(Kind::CoPilot, 500.0);
     println!("Is MOA config ok? {}", moa.is_weight_and_balance_ok());
     println!("Point: {:?}", moa.calc_weight_and_balance());
     Ok(())
