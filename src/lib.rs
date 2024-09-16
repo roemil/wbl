@@ -4,10 +4,8 @@ use num::complex::ComplexFloat;
 use serde::{Deserialize, Serialize};
 
 pub mod calc_wb;
-pub mod four_seater;
 pub mod ken;
 pub mod moa;
-pub mod two_seater;
 
 #[derive(Default, PartialEq, Eq, Hash, Debug, Clone, Copy, PartialOrd, Ord)]
 pub enum Kind {
