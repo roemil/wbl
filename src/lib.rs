@@ -7,7 +7,6 @@ pub mod calc_wb;
 pub mod four_seater;
 pub mod ken;
 pub mod moa;
-pub mod plane;
 pub mod two_seater;
 
 #[derive(Default, PartialEq, Eq, Hash, Debug, Clone, Copy, PartialOrd, Ord)]
