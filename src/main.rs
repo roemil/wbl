@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use wbl::{MoaConfig, PlaneConfigs};
 use std::error::Error;
 use std::hash::Hash;
 use std::io::{BufRead, BufReader};
@@ -7,7 +6,7 @@ use std::{collections::HashMap, fs::File};
 use wbl::{
     calc_wb::CalcWeightAndBalance, is_inside_polygon, ken::KenBuilder, moa::Moa, Kind, ViktArm,
 };
-
+use wbl::{MoaConfig, PlaneConfigs};
 
 fn get_moa_config() -> MoaConfig {
     let config = HashMap::from([
@@ -66,12 +65,20 @@ fn main() -> Result<(), String> {
     let arm = MoaConfig::from(planes.moa_json);
     let weights = get_moa_weights();
 
-    let moa_properties =
-        iterate_maps(&arm.config, &weights.config).fold(HashMap::new(), move |mut props, (k, a, w)| {
+    let moa_properties = iterate_maps(&arm.config, &weights.config).fold(
+        HashMap::new(),
+        move |mut props, (k, a, w)| {
             props.insert(*k, ViktArm::new(*w, *a));
             props
-        });
+        },
+    );
 
+    /*
+    TODO:
+    1. Update a config with new weights
+    2. Front end TUI
+    3. clean up
+     */
 
     let moa = Moa::new(moa_properties, arm.vortices);
     println!("Is MOA config ok? {}", moa.is_weight_and_balance_ok());

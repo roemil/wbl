@@ -7,8 +7,8 @@ pub mod calc_wb;
 pub mod four_seater;
 pub mod ken;
 pub mod moa;
-pub mod two_seater;
 pub mod plane;
+pub mod two_seater;
 
 #[derive(Default, PartialEq, Eq, Hash, Debug, Clone, Copy, PartialOrd, Ord)]
 pub enum Kind {
@@ -67,7 +67,7 @@ impl ViktArm {
 }
 
 //ref: https://www.linkedin.com/pulse/short-formula-check-given-point-lies-inside-outside-polygon-ziemecki/
-pub fn is_inside_polygon(point: ViktArm, vertices: &[ViktArm;6], valid_border: bool) -> bool {
+pub fn is_inside_polygon(point: ViktArm, vertices: &[ViktArm; 6], valid_border: bool) -> bool {
     let mut sum = num::complex::Complex::new(0.0, 0.0);
 
     for i in 1..vertices.len() + 1 {
@@ -98,8 +98,6 @@ fn is_point_in_segment(p: &ViktArm, p0: &ViktArm, p1: &ViktArm) -> bool {
         || (p1.weight == 0.0 && p1.lever == 0.0)
 }
 
-
-
 pub struct MoaConfig {
     pub config: std::collections::HashMap<Kind, f32>,
     pub vortices: [ViktArm; 6],
@@ -120,7 +118,7 @@ pub struct MoaJson {
     bagage_wings: f32,
     pilot: f32,
     co_pilot: f32,
-    vortices: [[f32;2];6]
+    vortices: [[f32; 2]; 6],
 }
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct KenJson {
@@ -160,9 +158,13 @@ impl From<MoaJson> for MoaConfig {
         moa.config.insert(Kind::Pilot, value.pilot);
         moa.config.insert(Kind::CoPilot, value.co_pilot);
 
-        for (i, vortex) in value.vortices.iter().enumerate() {
-            moa.vortices[i] = ViktArm::new(vortex[0], vortex[1]);
-        }
+        moa.vortices = value
+            .vortices
+            .iter()
+            .map(|vortex| ViktArm::new(vortex[0], vortex[1]))
+            .collect::<Vec<ViktArm>>()
+            .try_into()
+            .expect("Should be able to create array");
 
         moa
     }
