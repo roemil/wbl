@@ -3,16 +3,10 @@ use crate::{
 };
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Moa {
     pub properties: Properties,
     vertices: [ViktArm; 6],
-}
-
-impl Default for Moa {
-    fn default() -> Self {
-        Self { properties: Default::default(), vertices: Default::default() }
-    }
 }
 
 impl Moa {
@@ -39,7 +33,7 @@ impl Moa {
     }
 
     fn is_mtow_ok(&self) -> bool {
-        self.properties.iter().map(|(_, wb)| wb.weight).sum::<f32>() <= 750.0
+        self.get_total_weights() <= 750.0
     }
 
     fn is_zero_fuel_ok(&self) -> bool {
@@ -68,12 +62,12 @@ impl Moa {
     }
 
     fn get_total_weights(&self) -> f32 {
-        self.properties.iter().map(|(_, wb)| wb.weight).sum()
+        self.properties.values().map(|vikt_arm| vikt_arm.weight).sum()
     }
+
     fn get_total_torque(&self) -> f32 {
-        self.properties
-            .iter()
-            .map(|(_, wb)| wb.torque())
+        self.properties.values()
+            .map(|vikt_arm| vikt_arm.torque())
             .sum::<f32>()
     }
 }

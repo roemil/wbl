@@ -34,13 +34,13 @@ impl Ken {
 
 impl CalcWeightAndBalance for Ken {
     fn calc_weight_and_balance(&self) -> ViktArm {
-        let total_w = self.properties.iter().map(|(_, wb)| wb.weight).sum();
+        let total_w = self.properties.values().map(|vikt_arm| vikt_arm.weight).sum();
         assert!(total_w > 0.0);
 
         let total_torque = self
             .properties
-            .iter()
-            .map(|(_, wb)| wb.torque())
+            .values()
+            .map(|vikt_arm| vikt_arm.torque())
             .sum::<f32>();
 
         ViktArm {
