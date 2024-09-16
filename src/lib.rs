@@ -35,12 +35,6 @@ fn is_value_within_weight_limit(
     is_item_within_limit
 }
 
-#[derive(PartialEq, Clone)]
-pub enum UseFuel {
-    Yes,
-    No,
-}
-
 #[derive(PartialEq, PartialOrd, Debug, Clone)]
 pub struct ViktArm {
     pub weight: f32,
