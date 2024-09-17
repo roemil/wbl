@@ -21,9 +21,9 @@ pub struct PlaneWeights {
     passenger_right: Option<f32>,
 }
 
+
 #[derive(Serialize, Deserialize, Debug, Default)]
-pub struct PlaneData {
-    pub name: String,
+pub struct Levers {
     pub base: f32,
     pub fuel: f32,
     pub bagage: Option<f32>,
@@ -34,51 +34,57 @@ pub struct PlaneData {
     pub co_pilot: f32,
     pub passenger_left: Option<f32>,
     pub passenger_right: Option<f32>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct MaxWeights {
     pub max_take_off_weight: f32,
     pub max_fuel: f32,
     pub max_zero_fuel_mass: Option<f32>,
+}
+
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct PlaneData {
+    pub name: String,
+    pub levers: Levers,
+    pub max_weights: MaxWeights,
     pub vortices: [[f32; 2]; 6],
 }
 
 impl PlaneData {
-    pub fn to_map(&self) -> HashMap<Kind, f32> {
+    pub fn to_lever_map(&self) -> HashMap<Kind, f32> {
         let mut map = HashMap::new();
-        map.insert(Kind::Base, self.base);
-        map.insert(Kind::Fuel, self.fuel);
-        if let Some(value) = self.bagage_back {
+        map.insert(Kind::Base, self.levers.base);
+        map.insert(Kind::Fuel, self.levers.fuel);
+        if let Some(value) = self.levers.bagage_back {
             map.insert(Kind::BagageBack, value);
         }
-        if let Some(value) = self.bagage_front {
+        if let Some(value) = self.levers.bagage_front {
             map.insert(Kind::BagageFront, value);
         }
-        if let Some(value) = self.bagage_wings {
+        if let Some(value) = self.levers.bagage_wings {
             map.insert(Kind::BagageWings, value);
         }
-        if let Some(value) = self.bagage {
+        if let Some(value) = self.levers.bagage {
             map.insert(Kind::Bagage, value);
         }
 
-        map.insert(Kind::Pilot, self.pilot);
-        map.insert(Kind::CoPilot, self.co_pilot);
+        map.insert(Kind::Pilot, self.levers.pilot);
+        map.insert(Kind::CoPilot, self.levers.co_pilot);
 
-        if let Some(value) = self.passenger_left {
+        if let Some(value) = self.levers.passenger_left {
             map.insert(Kind::PaxLeftBack, value);
         }
-        if let Some(value) = self.passenger_right {
+        if let Some(value) = self.levers.passenger_right {
             map.insert(Kind::PaxRightBack, value);
         }
-
-        // map.insert(Kind::MaxTakeOffMass, self.max_take_off_weight);
-        // map.insert(Kind::MaxFuel, self.max_fuel);
-        // if let Some(value) = self.max_zero_fuel_mass {
-        //     map.insert(Kind::MaxZeroFuel, value);
-        // }
 
         map
     }
 
     fn is_mtow_ok(&self, prop: &PlaneProperties) -> bool {
-        prop.get_total_weights() <= self.max_take_off_weight
+        prop.get_total_weights() <= self.max_weights.max_take_off_weight
     }
 
     fn flatten_vortices(&self) -> [ViktArm; 6] {
@@ -103,20 +109,20 @@ impl PlaneData {
     }
 
     fn is_bagage_ok(&self, prop: &PlaneProperties) -> bool {
-        if self.bagage.is_some() {
-            return is_value_within_weight_limit(&prop.0, Kind::Bagage, self.bagage.unwrap());
+        if self.levers.bagage.is_some() {
+            return is_value_within_weight_limit(&prop.0, Kind::Bagage, self.levers.bagage.unwrap());
         }
         let mut is_bagage_back_ok = true;
-        if self.bagage_back.is_some() {
+        if self.levers.bagage_back.is_some() {
             is_bagage_back_ok =
-                is_value_within_weight_limit(&prop.0, Kind::BagageBack, self.bagage_back.unwrap());
+                is_value_within_weight_limit(&prop.0, Kind::BagageBack, self.levers.bagage_back.unwrap());
         }
         let mut is_bagage_front_ok = true;
-        if self.bagage_front.is_some() {
+        if self.levers.bagage_front.is_some() {
             is_bagage_front_ok = is_value_within_weight_limit(
                 &prop.0,
                 Kind::BagageFront,
-                self.bagage_front.unwrap(),
+                self.levers.bagage_front.unwrap(),
             );
         }
         is_bagage_back_ok && is_bagage_front_ok
@@ -126,7 +132,7 @@ impl PlaneData {
         let mut is_bagage_wings_is_ok = true;
         if let Some(bagage_wings) = prop.0.get(&Kind::BagageWings) {
             is_bagage_wings_is_ok = bagage_wings.weight
-                <= self
+                <= self.levers
                     .bagage_wings
                     .expect("Config is missing Bagage in wings");
         }
@@ -134,7 +140,7 @@ impl PlaneData {
     }
 
     fn is_max_wing_load_ok(&self, properties: &PlaneProperties) -> bool {
-        if let Some(max_weight) = self.max_zero_fuel_mass {
+        if let Some(max_weight) = self.max_weights.max_zero_fuel_mass {
             let properties_of_interest = [
                 Kind::Base,
                 Kind::Pilot,
@@ -155,7 +161,7 @@ impl PlaneData {
 
     fn is_fuel_ok(&self, properties: &PlaneProperties) -> bool {
         if let Some(fuel) = properties.0.get(&Kind::Fuel) {
-            return fuel.weight <= self.max_fuel;
+            return fuel.weight <= self.max_weights.max_fuel;
         }
         true
     }

@@ -77,10 +77,10 @@ fn parse_input_file(path :&str) -> (String, HashMap<Kind, f32>) {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let planes = read_plane_config_from_json("./src/config.json");
-    let (name, weights) = parse_input_file("./src/input_ken.json");
+    let (name, weights) = parse_input_file("./src/input.json");
     let plane_config: &PlaneData =
         &planes[planes.iter().position(|plane| plane.name == name).unwrap()];
-    let plane_limits = plane_config.to_map();
+    let plane_limits = plane_config.to_lever_map();
     let plane_properties = PlaneProperties::new(iterate_maps(&plane_limits, &weights).fold(
         HashMap::new(),
         move |mut props, (k, a, w)| {

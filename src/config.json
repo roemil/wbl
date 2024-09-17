@@ -1,15 +1,19 @@
 [
     {
         "name": "MOA",
-        "base": 172.9,
-        "fuel": 160.0,
-        "bagage_back": 280.0,
-        "bagage_front": 252.0,
-        "bagage_wings": 202.0,
-        "pilot": 208.5,
-        "co_pilot": 208.5,
-        "max_take_off_weight": 750.0,
-        "max_fuel": 85.0,
+        "levers": {
+            "base": 172.9,
+            "fuel": 160.0,
+            "bagage_back": 280.0,
+            "bagage_front": 252.0,
+            "bagage_wings": 202.0,
+            "pilot": 208.5,
+            "co_pilot": 208.5
+        },
+        "max_weights": {
+            "max_take_off_weight": 750.0,
+            "max_fuel": 85.0
+        },
         "vortices": [
             [
                 490.0,
@@ -39,15 +43,19 @@
     },
     {
         "name": "KEN",
-        "base": 219.4,
-        "fuel": 241.3,
-        "bagage": 362.7,
-        "pilot": 204.4,
-        "co_pilot": 204.4,
-        "passenger_left": 300.0,
-        "passenger_right": 300.0,
-        "max_take_off_weight": 1055.0,
-        "max_fuel": 129.0,
+        "levers": {
+            "base": 219.4,
+            "fuel": 241.3,
+            "bagage": 362.7,
+            "pilot": 204.4,
+            "co_pilot": 204.4,
+            "passenger_left": 300.0,
+            "passenger_right": 300.0
+        },
+        "max_weights": {
+            "max_take_off_weight": 1055.0,
+            "max_fuel": 129.0
+        },
         "vortices": [
             [
                 685.2,
