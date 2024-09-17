@@ -1,6 +1,6 @@
 ## Calculator for weight and balance for small airplanes
 ### Config
-Add the configuration for each plane in src/config.json in the following format:
+Add the configuration for each plane in src/input/config.json in the following format:
 ```json
 {
     "name": "Name of airplane"

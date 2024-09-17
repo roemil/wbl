@@ -84,7 +84,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
 
-    let planes = read_plane_config_from_json("./src/config.json");
+    let planes = read_plane_config_from_json("./src/input/config.json");
     let (name, weights) = parse_input_file(&args.path);
     let plane_config: &PlaneData =
         &planes[planes.iter().position(|plane| plane.name == name).unwrap()];
