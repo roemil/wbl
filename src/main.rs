@@ -9,6 +9,7 @@ use std::hash::Hash;
 use std::io::BufReader;
 use std::str::FromStr;
 use std::{collections::HashMap, fs::File};
+use clap::Parser;
 use wbl::calc_wb::WeightAndBalance;
 use wbl::planes::{PlaneData, PlaneProperties};
 use wbl::{Kind, ViktArm};
@@ -28,15 +29,13 @@ pub fn iterate_maps<'a: 'b, 'b, K: Eq + Hash + fmt::Debug, V>(
 }
 
 fn read_plane_config_from_json(path : &str) -> Vec<PlaneData> {
-    let file = File::open(path).expect("File not found");
+    let file = File::open(path).expect("Config not found");
     let reader = BufReader::new(file);
     let jsons = serde_json::Deserializer::from_reader(reader).into_iter::<Vec<PlaneData>>();
     let mut planes_vec: Vec<PlaneData> = Vec::new();
     for json in jsons {
-        println!("json: {:?}", json);
         if let Ok(planes) = json {
             for plane in planes {
-                println!("Plane: {:?}", plane);
                 planes_vec.push(plane);
             }
         }
@@ -46,7 +45,7 @@ fn read_plane_config_from_json(path : &str) -> Vec<PlaneData> {
 }
 
 fn parse_input_file(path :&str) -> (String, HashMap<Kind, f32>) {
-    let file = File::open(path).expect("File not found");
+    let file = File::open(path).expect("Input file not found");
     let reader = BufReader::new(file);
     let jsons = serde_json::Deserializer::from_reader(reader).into_iter::<serde_json::Value>();
     let mut weights = HashMap::new();
@@ -75,9 +74,18 @@ fn parse_input_file(path :&str) -> (String, HashMap<Kind, f32>) {
     return (name, weights);
 }
 
+#[derive(Parser, Debug)]
+struct Args{
+    #[arg(short, long)]
+    path : String
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
+    let args = Args::parse();
+
+
     let planes = read_plane_config_from_json("./src/config.json");
-    let (name, weights) = parse_input_file("./src/input.json");
+    let (name, weights) = parse_input_file(&args.path);
     let plane_config: &PlaneData =
         &planes[planes.iter().position(|plane| plane.name == name).unwrap()];
     let plane_limits = plane_config.to_lever_map();
