@@ -19,16 +19,16 @@ Add the configuration for each plane in src/input/config.json in the following f
 }
 ```
 Levers are restricted to: 
-    * base (Mandatory)
-    * fuel (Mandatory)
-    * bagage
-    * bagage_back
-    * bagage_front
-    * bagage_wings
-    * pilot (Mandatory)
-    * co_pilot (Mandatory)
-    * passenger_left
-    * passenger_right
+- base (Mandatory)
+- fuel (Mandatory)
+- bagage
+- bagage_back
+- bagage_front
+- bagage_wings
+- pilot (Mandatory)
+- co_pilot (Mandatory)
+- passenger_left
+- passenger_right
 
 ### Input
 Currently the weight and balance is calculated by parsing a json file: src/input.json
@@ -47,17 +47,17 @@ Add your input weights in the following format:
 ```
 
 Input points are restricted to: 
-    * name (Mandatory)
-    * base (Mandatory)
-    * fuel (Mandatory)
-    * bagage
-    * bagage_back
-    * bagage_front
-    * bagage_wings
-    * pilot (Mandatory)
-    * co_pilot (Mandatory)
-    * passenger_left
-    * passenger_right
+ - name (Mandatory)
+ - base (Mandatory)
+ - fuel (Mandatory)
+ - bagage
+ - bagage_back
+ - bagage_front
+ - bagage_wings
+ - pilot (Mandatory)
+ - co_pilot (Mandatory)
+ - passenger_left
+ - passenger_right
 
 Weight should be in kilograms.
 
