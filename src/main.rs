@@ -3,89 +3,50 @@
 
 include!(env!("SLINT_INCLUDE_GENERATED"));
 
+use core::fmt;
 use std::error::Error;
 use std::hash::Hash;
 use std::io::BufReader;
 use std::str::FromStr;
 use std::{collections::HashMap, fs::File};
-use serde_json::Value;
-use wbl::ken::{Ken, KenConfig};
-use wbl::{calc_wb::CalcWeightAndBalance, moa::Moa, Kind, ViktArm};
-use wbl::{update_weight, MoaConfig};
-use wbl::planes::PlaneConfigs;
+use wbl::calc_wb::WeightAndBalance;
+use wbl::planes::{PlaneData, PlaneProperties};
+use wbl::{Kind, ViktArm};
 
-fn get_ken_weights() -> KenConfig {
-    let config = HashMap::from([
-        (Kind::Base, 685.2),
-        (Kind::Fuel, 129.0),
-        (Kind::Bagage, 20.0),
-        (Kind::Pilot, 70.0),
-        (Kind::CoPilot, 0.0),
-        (Kind::PaxLeftBack, 0.0),
-        (Kind::PaxRightBack, 0.0),
-    ]);
-    let mut ken_config = KenConfig::new();
-    ken_config.config = config;
-    ken_config
-}
-
-pub fn iterate_maps<'a: 'b, 'b, K: Eq + Hash, V>(
+pub fn iterate_maps<'a: 'b, 'b, K: Eq + Hash + fmt::Debug, V>(
     m1: &'a HashMap<K, V>,
     m2: &'b HashMap<K, V>,
 ) -> impl Iterator<Item = (&'a K, &'a V, &'b V)> {
-    m1.iter().map(move |(k, v1)| (k, v1, m2.get(k).unwrap()))
+    m1.iter().map(move |(k, v1)| {
+        (
+            k,
+            v1,
+            m2.get(k)
+                .expect(&format!("Expected key: {:?}", &k).to_string()),
+        )
+    })
 }
 
-fn json_object_to_hashmap(object : &serde_json::Map<String, Value>) -> HashMap<Kind, f32>{
-    let mut data = HashMap::new();
-    for (kind, value) in object {
-        if kind != "vortices" {
-            data.insert(Kind::from_str(kind).expect("Invalid type"), value.to_string().trim_matches('\"').parse::<f32>().expect("Expected float"));
-        }
-    }
-
-    data
-}
-
-fn json_value_to_f32(value : &Value) -> f32{
-    value.to_string().trim_matches('\"').parse::<f32>().expect("Expected float")
-}
-
-fn flatten_vortices(vortices : &Vec<serde_json::Value>) -> [ViktArm;6]{
-    vortices
-    .iter()
-    .map(|vortex| ViktArm::new(json_value_to_f32(&vortex[0]),json_value_to_f32(& vortex[1])))
-    .collect::<Vec<ViktArm>>()
-    .try_into()
-    .expect("Should be able to create array")
-}
-
-fn read_plane_config_from_json() -> (HashMap<String, HashMap<Kind, f32>>, HashMap<String, [ViktArm;6]>) {
-    let file = File::open("./src/config.json").expect("File not found");
+fn read_plane_config_from_json(path : &str) -> Vec<PlaneData> {
+    let file = File::open(path).expect("File not found");
     let reader = BufReader::new(file);
-    let jsons = serde_json::Deserializer::from_reader(reader).into_iter::<serde_json::Value>();
-    let mut planes_map = HashMap::new();
-    let mut vortices_map = HashMap::new();
+    let jsons = serde_json::Deserializer::from_reader(reader).into_iter::<Vec<PlaneData>>();
+    let mut planes_vec: Vec<PlaneData> = Vec::new();
     for json in jsons {
-        if let Ok(planes_json) = json {
-            if let Some(planes) = planes_json.as_object() {
-                for (reg, data) in planes {
-                    if let Some(data_points) = data.as_object() {
-                        let data = json_object_to_hashmap(data_points);
-                        let vortices = flatten_vortices(&data_points["vortices"].as_array().expect("Vortices must exist"));
-                        let reg_str = reg.to_string().trim_matches('\"').to_string();
-                        vortices_map.insert(reg_str.clone(), vortices);
-                        planes_map.insert(reg_str, data);
-                    }
-                }
+        println!("json: {:?}", json);
+        if let Ok(planes) = json {
+            for plane in planes {
+                println!("Plane: {:?}", plane);
+                planes_vec.push(plane);
             }
         }
     }
-    (planes_map, vortices_map)
+
+    planes_vec
 }
 
-fn parse_input_file() -> (String, HashMap<Kind, f32>) {
-    let file = File::open("./src/input.json").expect("File not found");
+fn parse_input_file(path :&str) -> (String, HashMap<Kind, f32>) {
+    let file = File::open(path).expect("File not found");
     let reader = BufReader::new(file);
     let jsons = serde_json::Deserializer::from_reader(reader).into_iter::<serde_json::Value>();
     let mut weights = HashMap::new();
@@ -100,72 +61,49 @@ fn parse_input_file() -> (String, HashMap<Kind, f32>) {
                     }
                     weights.insert(
                         Kind::from_str(object.0).unwrap(),
-                        object.1.to_string().trim_matches('\"').parse::<f32>().unwrap(),
+                        object
+                            .1
+                            .to_string()
+                            .trim_matches('\"')
+                            .parse::<f32>()
+                            .unwrap(),
                     );
                 }
             }
         }
     }
-    //println!("Input file. Name: {}, objects: {:?}", name, weights);
     return (name, weights);
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let (name, weights) = parse_input_file();
-    let (planes, vortices) = read_plane_config_from_json();
-    let plane_config = &planes[&name];
-    let plane_properties = iterate_maps(&plane_config, &weights).fold(
-                HashMap::new(),
-                move |mut props, (k, a, w)| {
-                    props.insert(*k, ViktArm::new(*w, *a));
-                    props
-                },
-            );
-    let moa = Moa::new(plane_properties, vortices[&name].clone());
-    println!("Is MOA config ok? {}", moa.is_weight_and_balance_ok());
-    // let moa_levers = MoaConfig::from(planes.moa_json);
-    // if name == "MOA" {
-    //     let moa_properties = iterate_maps(&moa_levers.config, &weights).fold(
-    //         HashMap::new(),
-    //         move |mut props, (k, a, w)| {
-    //             props.insert(*k, ViktArm::new(*w, *a));
-    //             props
-    //         },
-    //     );
-    //     let mut moa = Moa::new(moa_properties, moa_levers.vortices);
-    //     println!("Is MOA config ok? {}", moa.is_weight_and_balance_ok());
-    //     println!("Point: {:?}", moa.calc_weight_and_balance());
-
-    //     let _ = update_weight(&mut moa.properties, Kind::CoPilot, 500.0);
-    //     println!("Is MOA config ok? {}", moa.is_weight_and_balance_ok());
-    //     println!("Point: {:?}", moa.calc_weight_and_balance());
-    // } else {
-    //     println!("Name not valid?");
-    // }
-
-    // let ken_config = KenConfig::from(planes.ken_json);
-    // let ken_weights = get_ken_weights();
-    // let ken_properties = iterate_maps(&ken_config.config, &ken_weights.config).fold(
-    //     HashMap::new(),
-    //     move |mut props, (k, a, w)| {
-    //         props.insert(*k, ViktArm::new(*w, *a));
-    //         props
-    //     },
-    // );
+    let planes = read_plane_config_from_json("./src/config.json");
+    let (name, weights) = parse_input_file("./src/input_ken.json");
+    let plane_config: &PlaneData =
+        &planes[planes.iter().position(|plane| plane.name == name).unwrap()];
+    let plane_limits = plane_config.to_map();
+    let plane_properties = PlaneProperties::new(iterate_maps(&plane_limits, &weights).fold(
+        HashMap::new(),
+        move |mut props, (k, a, w)| {
+            props.insert(*k, ViktArm::new(*w, *a));
+            props
+        },
+    ));
+    println!(
+        "Plane: {} has W&B that is ok: {}",
+        name,
+        plane_config.is_weight_and_balance_ok(&plane_properties)
+    );
+    println!(
+        "Plane: {} has W&B point at: {:?}",
+        name,
+        plane_config.calc_weight_and_balance(&plane_properties)
+    );
 
     // // /*
     // // TODO:
     // // 1. Front end TUI
     // // 2. clean up
     // //  */
-
-    // let mut ken = Ken::new(ken_properties, ken_config.vortices);
-    // println!("Is KEN config ok? {}", ken.is_weight_and_balance_ok());
-    // println!("Point: {:?}", ken.calc_weight_and_balance());
-
-    // let _ = update_weight(&mut ken.properties, Kind::CoPilot, 500.0);
-    // println!("Is KEN config ok? {}", ken.is_weight_and_balance_ok());
-    // println!("Point: {:?}", ken.calc_weight_and_balance());
 
     // // let ui = AppWindow::new()?;
 

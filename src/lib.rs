@@ -1,16 +1,10 @@
 use std::{collections::HashMap, str::FromStr};
 
 use num::complex::ComplexFloat;
-use planes::MoaJson;
 use serde::{Deserialize, Serialize};
 
 pub mod calc_wb;
-pub mod ken;
-pub mod moa;
 pub mod planes;
-
-type Properties = std::collections::HashMap<Kind, ViktArm>;
-type Verticies = [ViktArm; 6];
 
 #[derive(Default, PartialEq, Eq, Hash, Debug, Clone, Copy, PartialOrd, Ord,Deserialize, Serialize)]
 pub enum Kind {
@@ -26,6 +20,9 @@ pub enum Kind {
     CoPilot,
     PaxLeftBack,
     PaxRightBack,
+    MaxFuel,
+    MaxTakeOffMass,
+    MaxZeroFuel
 }
 
 impl FromStr for Kind {
@@ -141,28 +138,6 @@ impl Default for MoaConfig {
     }
 }
 
-impl From<MoaJson> for MoaConfig {
-    fn from(value: MoaJson) -> Self {
-        let mut moa = MoaConfig::default();
-        moa.config.insert(Kind::Base, value.base);
-        moa.config.insert(Kind::Fuel, value.fuel);
-        moa.config.insert(Kind::BagageBack, value.bagage_back);
-        moa.config.insert(Kind::BagageFront, value.bagage_front);
-        moa.config.insert(Kind::BagageWings, value.bagage_wings);
-        moa.config.insert(Kind::Pilot, value.pilot);
-        moa.config.insert(Kind::CoPilot, value.co_pilot);
-
-        moa.vortices = value
-            .vortices
-            .iter()
-            .map(|vortex| ViktArm::new(vortex[0], vortex[1]))
-            .collect::<Vec<ViktArm>>()
-            .try_into()
-            .expect("Should be able to create array");
-
-        moa
-    }
-}
 
 impl MoaConfig {
     pub fn new() -> MoaConfig {
