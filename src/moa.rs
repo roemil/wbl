@@ -75,6 +75,7 @@ impl Moa {
 impl CalcWeightAndBalance for Moa {
     fn calc_weight_and_balance(&self) -> ViktArm {
         let total_weight = self.get_total_weights();
+        assert!(total_weight > 0.0);
         ViktArm {
             weight: total_weight,
             lever: self.get_total_torque() / total_weight,

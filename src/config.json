@@ -1,5 +1,6 @@
 {
     "moa_json": {
+        "name": "MOA",
         "base": 172.9,
         "fuel": 160.0,
         "bagage_back": 280.0,
@@ -35,6 +36,7 @@
         ]
     },
     "ken_json": {
+        "name": "KEN",
         "base": 219.4,
         "fuel": 241.3,
         "bagage": 362.7,

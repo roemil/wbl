@@ -1,16 +1,18 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use num::complex::ComplexFloat;
+use planes::MoaJson;
 use serde::{Deserialize, Serialize};
 
 pub mod calc_wb;
 pub mod ken;
 pub mod moa;
+pub mod planes;
 
 type Properties = std::collections::HashMap<Kind, ViktArm>;
 type Verticies = [ViktArm; 6];
 
-#[derive(Default, PartialEq, Eq, Hash, Debug, Clone, Copy, PartialOrd, Ord)]
+#[derive(Default, PartialEq, Eq, Hash, Debug, Clone, Copy, PartialOrd, Ord,Deserialize, Serialize)]
 pub enum Kind {
     #[default]
     NoValue,
@@ -26,6 +28,27 @@ pub enum Kind {
     PaxRightBack,
 }
 
+impl FromStr for Kind {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "NoValue" => Ok(Kind::NoValue),
+            "base" => Ok(Kind::Base),
+            "fuel" => Ok(Kind::Fuel),
+            "bagage" => Ok(Kind::Bagage),
+            "bagage_front" => Ok(Kind::BagageFront),
+            "bagage_back" => Ok(Kind::BagageBack),
+            "bagage_wings" => Ok(Kind::BagageWings),
+            "pilot" => Ok(Kind::Pilot),
+            "co_pilot" => Ok(Kind::CoPilot),
+            "passenger_left" => Ok(Kind::PaxLeftBack),
+            "passenger_right" => Ok(Kind::PaxRightBack),
+            _ => Err(format!("Invalid value of string: {}", s))
+        }
+    }
+}
+
 fn is_value_within_weight_limit(
     properties: &std::collections::HashMap<Kind, ViktArm>,
     kind: Kind,
@@ -38,7 +61,7 @@ fn is_value_within_weight_limit(
     is_item_within_limit
 }
 
-#[derive(PartialEq, PartialOrd, Debug, Clone)]
+#[derive(PartialEq, PartialOrd, Debug, Clone,Deserialize, Serialize)]
 pub struct ViktArm {
     pub weight: f32,
     pub lever: f32,
@@ -92,39 +115,15 @@ fn is_point_in_segment(p: &ViktArm, p0: &ViktArm, p1: &ViktArm) -> bool {
         || (p1.weight == 0.0 && p1.lever == 0.0)
 }
 
+
+
+#[derive(Deserialize, Serialize)]
 pub struct MoaConfig {
     pub config: std::collections::HashMap<Kind, f32>,
     pub vortices: [ViktArm; 6],
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
-pub struct PlaneConfigs {
-    pub moa_json: MoaJson,
-    pub ken_json: KenJson,
-}
 
-#[derive(Serialize, Deserialize, Debug, Default)]
-pub struct MoaJson {
-    base: f32,
-    fuel: f32,
-    bagage_back: f32,
-    bagage_front: f32,
-    bagage_wings: f32,
-    pilot: f32,
-    co_pilot: f32,
-    vortices: [[f32; 2]; 6],
-}
-#[derive(Serialize, Deserialize, Debug, Default)]
-pub struct KenJson {
-    base: f32,
-    fuel: f32,
-    bagage: f32,
-    pilot: f32,
-    co_pilot: f32,
-    passenger_left: f32,
-    passenger_right: f32,
-    vortices: [[f32; 2]; 6]
-}
 
 impl Default for MoaConfig {
     fn default() -> MoaConfig {

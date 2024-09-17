@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{calc_wb::CalcWeightAndBalance, is_inside_polygon, KenJson, Kind, Properties, Verticies, ViktArm};
+use serde::{Deserialize, Serialize};
+
+use crate::{calc_wb::CalcWeightAndBalance, is_inside_polygon, Kind, Properties, Verticies, ViktArm};
+use crate::planes::KenJson;
 
 pub struct Ken {
     pub properties: std::collections::HashMap<Kind, ViktArm>,
@@ -57,7 +60,7 @@ impl CalcWeightAndBalance for Ken {
         is_inside_polygon(calc, &self.vertices, false)
     }
 }
-
+#[derive(Deserialize, Serialize)]
 pub struct KenConfig {
     pub config: std::collections::HashMap<Kind, f32>,
     pub vortices: [ViktArm; 6],
