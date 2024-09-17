@@ -38,3 +38,7 @@ Weight should be in kilograms.
 
 ### Running
 cargo run -- --path /path/to/input.json
+
+### Output
+Plane: "Your plane" has W&B that is ok: true
+Plane: "Your plane" has W&B point at: ViktArm { weight: 611.5, lever: 175.40662 }
