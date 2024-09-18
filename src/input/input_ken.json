@@ -1,10 +1,10 @@
 {
     "name": "KEN",
-    "base": "685.2",
-    "fuel": "129.0",
-    "bagage": "23.0",
-    "pilot": "70.0",
-    "co_pilot": "0.0",
-    "passenger_left": "0.0",
-    "passenger_right": "0.0"
+    "base": 685.2,
+    "fuel": 129.0,
+    "bagage": 23.0,
+    "pilot": 70.0,
+    "co_pilot": 0.0,
+    "passenger_left": 0.0,
+    "passenger_right": 0.0
 }

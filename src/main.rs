@@ -60,12 +60,8 @@ fn parse_input_file(path :&str) -> (String, HashMap<Kind, f32>) {
                     }
                     weights.insert(
                         Kind::from_str(object.0).unwrap(),
-                        object
-                            .1
-                            .to_string()
-                            .trim_matches('\"')
-                            .parse::<f32>()
-                            .unwrap(),
+                        (object
+                            .1.as_f64().expect("Expected float")) as f32,
                     );
                 }
             }
