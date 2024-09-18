@@ -116,7 +116,7 @@ fn is_point_in_segment(p: &WeightLever, p0: &WeightLever, p1: &WeightLever) -> b
 #[derive(Deserialize, Serialize)]
 pub struct MoaConfig {
     pub config: std::collections::HashMap<Kind, f32>,
-    pub vortices: [WeightLever; 6],
+    pub vertices: [WeightLever; 6],
 }
 
 
@@ -125,7 +125,7 @@ impl Default for MoaConfig {
     fn default() -> MoaConfig {
         MoaConfig {
             config: HashMap::new(),
-            vortices: [
+            vertices: [
                 WeightLever::new(490.0, 171.2),
                 WeightLever::new(600.0, 171.2),
                 WeightLever::new(750.0, 179.2),

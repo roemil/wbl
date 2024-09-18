@@ -15,7 +15,7 @@
             "max_take_off_weight": 750.0,
             "max_fuel": 85.0
         },
-        "vortices": [
+        "vertices": [
             [
                 490.0,
                 171.2
@@ -58,7 +58,7 @@
             "max_take_off_weight": 1055.0,
             "max_fuel": 129.0
         },
-        "vortices": [
+        "vertices": [
             [
                 685.2,
                 210.8

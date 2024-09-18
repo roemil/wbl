@@ -33,7 +33,7 @@ pub struct PlaneData {
     pub name: String,
     pub levers: Levers,
     pub max_weights: MaxWeights,
-    pub vortices: [[f32; 2]; 6],
+    pub vertices: [[f32; 2]; 6],
 }
 
 impl PlaneData {
@@ -72,10 +72,10 @@ impl PlaneData {
         prop.get_total_weights() <= self.max_weights.max_take_off_weight
     }
 
-    fn flatten_vortices(&self) -> [WeightLever; 6] {
-        self.vortices
+    fn flatten_vertices(&self) -> [WeightLever; 6] {
+        self.vertices
             .iter()
-            .map(|vortex| WeightLever::new(vortex[0], vortex[1]))
+            .map(|vertex| WeightLever::new(vertex[0], vertex[1]))
             .collect::<Vec<WeightLever>>()
             .try_into()
             .expect("Should be able to create array")
@@ -90,7 +90,7 @@ impl PlaneData {
                 (acc.0 + wb.weight, acc.1 + wb.torque())
             });
         let zero_fuel_point = WeightLever::new(total_weight, total_torque / total_weight);
-        is_inside_polygon(zero_fuel_point, &self.flatten_vortices(), false)
+        is_inside_polygon(zero_fuel_point, &self.flatten_vertices(), false)
     }
 
     fn is_bagage_ok(&self, prop: &PlaneProperties) -> bool {
@@ -248,7 +248,7 @@ impl WeightAndBalance for PlaneData {
         }
 
         let calc = self.calc_weight_and_balance(prop);
-        is_inside_polygon(calc, &self.flatten_vortices(), false) && self.is_zero_fuel_ok(prop)
+        is_inside_polygon(calc, &self.flatten_vertices(), false) && self.is_zero_fuel_ok(prop)
     }
 
     fn is_landing_weight_and_balance_ok(&self, prop: &PlaneProperties) -> bool {
@@ -265,6 +265,6 @@ impl WeightAndBalance for PlaneData {
         }
 
         let calc = self.calc_landing_weight_and_balance(prop);
-        is_inside_polygon(calc, &self.flatten_vortices(), false) && self.is_zero_fuel_ok(prop)
+        is_inside_polygon(calc, &self.flatten_vertices(), false) && self.is_zero_fuel_ok(prop)
     }
 }
