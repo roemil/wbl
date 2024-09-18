@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    calc_wb::WeightAndBalance, is_inside_polygon, is_value_within_weight_limit, Kind, ViktArm,
+    calc_wb::WeightAndBalance, is_inside_polygon, is_value_within_weight_limit, Kind, WeightLever,
 };
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -72,11 +72,11 @@ impl PlaneData {
         prop.get_total_weights() <= self.max_weights.max_take_off_weight
     }
 
-    fn flatten_vortices(&self) -> [ViktArm; 6] {
+    fn flatten_vortices(&self) -> [WeightLever; 6] {
         self.vortices
             .iter()
-            .map(|vortex| ViktArm::new(vortex[0], vortex[1]))
-            .collect::<Vec<ViktArm>>()
+            .map(|vortex| WeightLever::new(vortex[0], vortex[1]))
+            .collect::<Vec<WeightLever>>()
             .try_into()
             .expect("Should be able to create array")
     }
@@ -89,7 +89,7 @@ impl PlaneData {
             .fold((0.0_f32, 0.0_f32), |acc, (_, wb)| {
                 (acc.0 + wb.weight, acc.1 + wb.torque())
             });
-        let zero_fuel_point = ViktArm::new(total_weight, total_torque / total_weight);
+        let zero_fuel_point = WeightLever::new(total_weight, total_torque / total_weight);
         is_inside_polygon(zero_fuel_point, &self.flatten_vortices(), false)
     }
 
@@ -166,10 +166,10 @@ impl PlaneData {
 }
 
 #[derive(Default)]
-pub struct PlaneProperties(HashMap<Kind, ViktArm>);
+pub struct PlaneProperties(HashMap<Kind, WeightLever>);
 
 impl PlaneProperties {
-    pub fn new(val: HashMap<Kind, ViktArm>) -> PlaneProperties {
+    pub fn new(val: HashMap<Kind, WeightLever>) -> PlaneProperties {
         PlaneProperties(val)
     }
     fn get_total_weights(&self) -> f32 {
@@ -216,19 +216,19 @@ impl PlaneProperties {
 }
 
 impl WeightAndBalance for PlaneData {
-    fn calc_weight_and_balance(&self, prop: &PlaneProperties) -> ViktArm {
+    fn calc_weight_and_balance(&self, prop: &PlaneProperties) -> WeightLever {
         let total_weight = prop.get_total_weights();
         assert!(total_weight > 0.0);
-        ViktArm {
+        WeightLever {
             weight: total_weight,
             lever: prop.get_total_torque() / total_weight,
         }
     }
 
-    fn calc_landing_weight_and_balance(&self, prop: &PlaneProperties) -> ViktArm {
+    fn calc_landing_weight_and_balance(&self, prop: &PlaneProperties) -> WeightLever {
         let total_weight = prop.get_landing_weights();
         assert!(total_weight > 0.0);
-        ViktArm {
+        WeightLever {
             weight: total_weight,
             lever: prop.get_landing_torque() / total_weight,
         }

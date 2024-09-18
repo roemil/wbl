@@ -12,7 +12,7 @@ use std::str::FromStr;
 use std::{collections::HashMap, fs::File};
 use wbl::calc_wb::WeightAndBalance;
 use wbl::planes::{PlaneData, PlaneProperties};
-use wbl::{Kind, ViktArm};
+use wbl::{Kind, WeightLever};
 
 pub fn iterate_maps<'a: 'b, 'b, K: Eq + Hash + fmt::Debug, V>(
     m1: &'a HashMap<K, V>,
@@ -86,7 +86,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let plane_properties = PlaneProperties::new(iterate_maps(&plane_levers, &weights).fold(
         HashMap::new(),
         move |mut props, (k, a, w)| {
-            props.insert(*k, ViktArm::new(*w, *a));
+            props.insert(*k, WeightLever::new(*w, *a));
             props
         },
     ));

@@ -46,7 +46,7 @@ impl FromStr for Kind {
 }
 
 fn is_value_within_weight_limit(
-    properties: &std::collections::HashMap<Kind, ViktArm>,
+    properties: &std::collections::HashMap<Kind, WeightLever>,
     kind: Kind,
     limit: f32,
 ) -> bool {
@@ -58,20 +58,20 @@ fn is_value_within_weight_limit(
 }
 
 #[derive(PartialEq, PartialOrd, Debug, Clone,Deserialize, Serialize)]
-pub struct ViktArm {
+pub struct WeightLever {
     pub weight: f32,
     pub lever: f32,
 }
 
-impl std::default::Default for ViktArm {
+impl std::default::Default for WeightLever {
     fn default() -> Self {
         Self::new(0.0, 0.0)
     }
 }
 
-impl ViktArm {
+impl WeightLever {
     pub fn new(weight: f32, lever: f32) -> Self {
-        ViktArm { weight, lever }
+        WeightLever { weight, lever }
     }
 
     pub fn torque(&self) -> f32 {
@@ -80,7 +80,7 @@ impl ViktArm {
 }
 
 //ref: https://www.linkedin.com/pulse/short-formula-check-given-point-lies-inside-outside-polygon-ziemecki/
-pub fn is_inside_polygon(point: ViktArm, vertices: &[ViktArm; 6], valid_border: bool) -> bool {
+pub fn is_inside_polygon(point: WeightLever, vertices: &[WeightLever; 6], valid_border: bool) -> bool {
     let mut sum = num::complex::Complex::new(0.0, 0.0);
 
     for i in 1..vertices.len() + 1 {
@@ -99,9 +99,9 @@ pub fn is_inside_polygon(point: ViktArm, vertices: &[ViktArm; 6], valid_border: 
     sum.abs() > 1.0
 }
 
-fn is_point_in_segment(p: &ViktArm, p0: &ViktArm, p1: &ViktArm) -> bool {
-    let p0 = ViktArm::new(p0.weight - p.weight, p0.lever - p.lever);
-    let p1 = ViktArm::new(p1.weight - p.weight, p1.lever - p.lever);
+fn is_point_in_segment(p: &WeightLever, p0: &WeightLever, p1: &WeightLever) -> bool {
+    let p0 = WeightLever::new(p0.weight - p.weight, p0.lever - p.lever);
+    let p1 = WeightLever::new(p1.weight - p.weight, p1.lever - p.lever);
 
     let det = p0.weight * p1.lever - p1.weight * p0.lever;
     let prod = p0.weight * p1.weight + p0.lever * p1.lever;
@@ -116,7 +116,7 @@ fn is_point_in_segment(p: &ViktArm, p0: &ViktArm, p1: &ViktArm) -> bool {
 #[derive(Deserialize, Serialize)]
 pub struct MoaConfig {
     pub config: std::collections::HashMap<Kind, f32>,
-    pub vortices: [ViktArm; 6],
+    pub vortices: [WeightLever; 6],
 }
 
 
@@ -126,12 +126,12 @@ impl Default for MoaConfig {
         MoaConfig {
             config: HashMap::new(),
             vortices: [
-                ViktArm::new(490.0, 171.2),
-                ViktArm::new(600.0, 171.2),
-                ViktArm::new(750.0, 179.2),
-                ViktArm::new(750.0, 184.0),
-                ViktArm::new(600.0, 184.0),
-                ViktArm::new(490.0, 184.0),
+                WeightLever::new(490.0, 171.2),
+                WeightLever::new(600.0, 171.2),
+                WeightLever::new(750.0, 179.2),
+                WeightLever::new(750.0, 184.0),
+                WeightLever::new(600.0, 184.0),
+                WeightLever::new(490.0, 184.0),
             ],
         }
     }
@@ -144,7 +144,7 @@ impl MoaConfig {
     }
 }
 
-pub fn update_weight(airplane_properties : &mut HashMap<Kind, ViktArm>, kind : Kind, weight : f32) -> Result<(), String>{
+pub fn update_weight(airplane_properties : &mut HashMap<Kind, WeightLever>, kind : Kind, weight : f32) -> Result<(), String>{
     if let Some(arm) = airplane_properties.get_mut(&kind) {
         arm.weight = weight;
         return Ok(());
