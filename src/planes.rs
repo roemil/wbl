@@ -90,7 +90,7 @@ impl PlaneData {
                 (acc.0 + wb.weight, acc.1 + wb.torque())
             });
         let zero_fuel_point = ViktArm::new(total_weight, total_torque / total_weight);
-        return is_inside_polygon(zero_fuel_point, &self.flatten_vortices(), false);
+        is_inside_polygon(zero_fuel_point, &self.flatten_vortices(), false)
     }
 
     fn is_bagage_ok(&self, prop: &PlaneProperties) -> bool {
@@ -165,12 +165,8 @@ impl PlaneData {
     }
 }
 
+#[derive(Default)]
 pub struct PlaneProperties(HashMap<Kind, ViktArm>);
-impl Default for PlaneProperties {
-    fn default() -> Self {
-        Self(Default::default())
-    }
-}
 
 impl PlaneProperties {
     pub fn new(val: HashMap<Kind, ViktArm>) -> PlaneProperties {
@@ -241,9 +237,9 @@ impl WeightAndBalance for PlaneData {
     fn is_weight_and_balance_ok(&self, prop: &PlaneProperties) -> bool {
         if !self.is_mtow_ok(prop)
             || !self.is_max_wing_load_ok(prop)
-            || !self.is_bagage_in_wings_ok(&prop)
-            || !self.is_bagage_ok(&prop)
-            || !self.is_fuel_ok(&prop)
+            || !self.is_bagage_in_wings_ok(prop)
+            || !self.is_bagage_ok(prop)
+            || !self.is_fuel_ok(prop)
             || !self.is_zero_fuel_ok(prop)
             || !self.is_landing_fuel_ok(prop)
         {
@@ -251,16 +247,16 @@ impl WeightAndBalance for PlaneData {
             return false;
         }
 
-        let calc = self.calc_weight_and_balance(&prop);
+        let calc = self.calc_weight_and_balance(prop);
         is_inside_polygon(calc, &self.flatten_vortices(), false) && self.is_zero_fuel_ok(prop)
     }
 
     fn is_landing_weight_and_balance_ok(&self, prop: &PlaneProperties) -> bool {
         if !self.is_mtow_ok(prop)
             || !self.is_max_wing_load_ok(prop)
-            || !self.is_bagage_in_wings_ok(&prop)
-            || !self.is_bagage_ok(&prop)
-            || !self.is_fuel_ok(&prop)
+            || !self.is_bagage_in_wings_ok(prop)
+            || !self.is_bagage_ok(prop)
+            || !self.is_fuel_ok(prop)
             || !self.is_zero_fuel_ok(prop)
             || !self.is_landing_fuel_ok(prop)
         {
@@ -268,7 +264,7 @@ impl WeightAndBalance for PlaneData {
             return false;
         }
 
-        let calc = self.calc_landing_weight_and_balance(&prop);
+        let calc = self.calc_landing_weight_and_balance(prop);
         is_inside_polygon(calc, &self.flatten_vortices(), false) && self.is_zero_fuel_ok(prop)
     }
 }
