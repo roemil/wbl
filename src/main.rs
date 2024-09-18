@@ -84,8 +84,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (name, weights) = parse_input_file(&args.path);
     let plane_config: &PlaneData =
         &planes[planes.iter().position(|plane| plane.name == name).unwrap()];
-    let plane_limits = plane_config.to_lever_map();
-    let plane_properties = PlaneProperties::new(iterate_maps(&plane_limits, &weights).fold(
+    let plane_levers = plane_config.to_lever_map();
+    let plane_properties = PlaneProperties::new(iterate_maps(&plane_levers, &weights).fold(
         HashMap::new(),
         move |mut props, (k, a, w)| {
             props.insert(*k, ViktArm::new(*w, *a));
@@ -101,6 +101,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         "Plane: {} has W&B point at: {:?}",
         name,
         plane_config.calc_weight_and_balance(&plane_properties)
+    );
+
+    println!(
+        "Plane: {} has landing W&B that is ok: {}",
+        name,
+        plane_config.is_landing_weight_and_balance_ok(&plane_properties)
+    );
+
+    println!(
+        "Plane: {} has a landing W&B point at: {:?}",
+        name,
+        plane_config.calc_landing_weight_and_balance(&plane_properties)
     );
 
     // // /*

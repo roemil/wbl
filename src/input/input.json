@@ -2,6 +2,7 @@
     "name": "MOA",
     "base": 453.5,
     "fuel": 85.0,
+    "trip_fuel": 35.0,
     "bagage_back": 0.0,
     "bagage_front": 1.0,
     "bagage_wings": 2.0,

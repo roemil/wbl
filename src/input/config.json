@@ -4,6 +4,7 @@
         "levers": {
             "base": 172.9,
             "fuel": 160.0,
+            "trip_fuel": 160.0,
             "bagage_back": 280.0,
             "bagage_front": 252.0,
             "bagage_wings": 202.0,
@@ -46,6 +47,7 @@
         "levers": {
             "base": 219.4,
             "fuel": 241.3,
+            "trip_fuel": 241.3,
             "bagage": 362.7,
             "pilot": 204.4,
             "co_pilot": 204.4,

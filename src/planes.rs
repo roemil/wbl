@@ -6,26 +6,11 @@ use crate::{
     calc_wb::WeightAndBalance, is_inside_polygon, is_value_within_weight_limit, Kind, ViktArm,
 };
 
-#[derive(Deserialize, Serialize)]
-pub struct PlaneWeights {
-    name: String,
-    base: f32,
-    fuel: f32,
-    bagage: Option<f32>,
-    bagage_back: Option<f32>,
-    bagage_front: Option<f32>,
-    bagage_wings: Option<f32>,
-    pilot: f32,
-    co_pilot: f32,
-    passenger_left: Option<f32>,
-    passenger_right: Option<f32>,
-}
-
-
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Levers {
     pub base: f32,
     pub fuel: f32,
+    pub trip_fuel: f32,
     pub bagage: Option<f32>,
     pub bagage_back: Option<f32>,
     pub bagage_front: Option<f32>,
@@ -43,7 +28,6 @@ pub struct MaxWeights {
     pub max_zero_fuel_mass: Option<f32>,
 }
 
-
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct PlaneData {
     pub name: String,
@@ -57,6 +41,7 @@ impl PlaneData {
         let mut map = HashMap::new();
         map.insert(Kind::Base, self.levers.base);
         map.insert(Kind::Fuel, self.levers.fuel);
+        map.insert(Kind::TripFuel, self.levers.trip_fuel);
         if let Some(value) = self.levers.bagage_back {
             map.insert(Kind::BagageBack, value);
         }
@@ -109,13 +94,18 @@ impl PlaneData {
     }
 
     fn is_bagage_ok(&self, prop: &PlaneProperties) -> bool {
+        let mut is_bagage_ok = true;
         if self.levers.bagage.is_some() {
-            return is_value_within_weight_limit(&prop.0, Kind::Bagage, self.levers.bagage.unwrap());
+            is_bagage_ok =
+                is_value_within_weight_limit(&prop.0, Kind::Bagage, self.levers.bagage.unwrap());
         }
         let mut is_bagage_back_ok = true;
         if self.levers.bagage_back.is_some() {
-            is_bagage_back_ok =
-                is_value_within_weight_limit(&prop.0, Kind::BagageBack, self.levers.bagage_back.unwrap());
+            is_bagage_back_ok = is_value_within_weight_limit(
+                &prop.0,
+                Kind::BagageBack,
+                self.levers.bagage_back.unwrap(),
+            );
         }
         let mut is_bagage_front_ok = true;
         if self.levers.bagage_front.is_some() {
@@ -125,14 +115,15 @@ impl PlaneData {
                 self.levers.bagage_front.unwrap(),
             );
         }
-        is_bagage_back_ok && is_bagage_front_ok
+        is_bagage_ok && is_bagage_back_ok && is_bagage_front_ok
     }
 
     fn is_bagage_in_wings_ok(&self, prop: &PlaneProperties) -> bool {
         let mut is_bagage_wings_is_ok = true;
         if let Some(bagage_wings) = prop.0.get(&Kind::BagageWings) {
             is_bagage_wings_is_ok = bagage_wings.weight
-                <= self.levers
+                <= self
+                    .levers
                     .bagage_wings
                     .expect("Config is missing Bagage in wings");
         }
@@ -165,6 +156,13 @@ impl PlaneData {
         }
         true
     }
+    fn is_landing_fuel_ok(&self, properties: &PlaneProperties) -> bool {
+        if let Some(fuel) = properties.0.get(&Kind::TripFuel) {
+            return fuel.weight > 0.0
+                && fuel.weight <= self.max_weights.max_fuel;
+        }
+        true
+    }
 }
 
 pub struct PlaneProperties(HashMap<Kind, ViktArm>);
@@ -179,14 +177,45 @@ impl PlaneProperties {
         PlaneProperties(val)
     }
     fn get_total_weights(&self) -> f32 {
-        self.0.values().map(|vikt_arm| vikt_arm.weight).sum()
+        self.0
+            .iter()
+            .filter(|(k, _)| **k != Kind::TripFuel)
+            .map(|(_, v)| v.weight)
+            .sum()
+    }
+
+    fn get_landing_weights(&self) -> f32 {
+        self.0
+            .iter()
+            .filter(|(k, _)| **k != Kind::TripFuel)
+            .map(|(_, v)| v.weight)
+            .sum::<f32>()
+            - self
+                .0
+                .get(&Kind::TripFuel)
+                .expect("Missing Trip fuel")
+                .weight
     }
 
     fn get_total_torque(&self) -> f32 {
         self.0
-            .values()
-            .map(|vikt_arm| vikt_arm.torque())
+            .iter()
+            .filter(|(k, _)| **k != Kind::TripFuel)
+            .map(|(_, v)| v.torque())
+            .sum()
+    }
+
+    fn get_landing_torque(&self) -> f32 {
+        self.0
+            .iter()
+            .filter(|(k, _)| **k != Kind::TripFuel)
+            .map(|(_, v)| v.torque())
             .sum::<f32>()
+            - self
+                .0
+                .get(&Kind::TripFuel)
+                .expect("Missing Trip fuel")
+                .torque()
     }
 }
 
@@ -200,18 +229,46 @@ impl WeightAndBalance for PlaneData {
         }
     }
 
+    fn calc_landing_weight_and_balance(&self, prop: &PlaneProperties) -> ViktArm {
+        let total_weight = prop.get_landing_weights();
+        assert!(total_weight > 0.0);
+        ViktArm {
+            weight: total_weight,
+            lever: prop.get_landing_torque() / total_weight,
+        }
+    }
+
     fn is_weight_and_balance_ok(&self, prop: &PlaneProperties) -> bool {
         if !self.is_mtow_ok(prop)
             || !self.is_max_wing_load_ok(prop)
             || !self.is_bagage_in_wings_ok(&prop)
             || !self.is_bagage_ok(&prop)
             || !self.is_fuel_ok(&prop)
+            || !self.is_zero_fuel_ok(prop)
+            || !self.is_landing_fuel_ok(prop)
         {
             println!("limits failed");
             return false;
         }
 
         let calc = self.calc_weight_and_balance(&prop);
+        is_inside_polygon(calc, &self.flatten_vortices(), false) && self.is_zero_fuel_ok(prop)
+    }
+
+    fn is_landing_weight_and_balance_ok(&self, prop: &PlaneProperties) -> bool {
+        if !self.is_mtow_ok(prop)
+            || !self.is_max_wing_load_ok(prop)
+            || !self.is_bagage_in_wings_ok(&prop)
+            || !self.is_bagage_ok(&prop)
+            || !self.is_fuel_ok(&prop)
+            || !self.is_zero_fuel_ok(prop)
+            || !self.is_landing_fuel_ok(prop)
+        {
+            println!("limits failed");
+            return false;
+        }
+
+        let calc = self.calc_landing_weight_and_balance(&prop);
         is_inside_polygon(calc, &self.flatten_vortices(), false) && self.is_zero_fuel_ok(prop)
     }
 }

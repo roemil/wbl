@@ -20,9 +20,7 @@ pub enum Kind {
     CoPilot,
     PaxLeftBack,
     PaxRightBack,
-    MaxFuel,
-    MaxTakeOffMass,
-    MaxZeroFuel
+    TripFuel
 }
 
 impl FromStr for Kind {
@@ -41,6 +39,7 @@ impl FromStr for Kind {
             "co_pilot" => Ok(Kind::CoPilot),
             "passenger_left" => Ok(Kind::PaxLeftBack),
             "passenger_right" => Ok(Kind::PaxRightBack),
+            "trip_fuel" => Ok(Kind::TripFuel),
             _ => Err(format!("Invalid value of string: {}", s))
         }
     }
