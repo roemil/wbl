@@ -55,7 +55,7 @@ fn parse_input_file(path: &str) -> (String, HashMap<Kind, f32>) {
                     continue;
                 }
                 weights.insert(
-                    Kind::from_str(object.0).unwrap(),
+                    Kind::from_str(object.0).expect("Invalid format of kind."),
                     (object.1.as_f64().expect("Expected float")) as f32,
                 );
             }
@@ -76,7 +76,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let planes = read_plane_config_from_json("./src/input/config.json");
     let (name, weights) = parse_input_file(&args.path);
     let plane_config: &PlaneData =
-        &planes[planes.iter().position(|plane| plane.name == name).unwrap()];
+        &planes[planes.iter().position(|plane| plane.name == name).expect("Plane missing in config")];
     let plane_levers = plane_config.to_lever_map();
     let plane_properties = PlaneProperties::new(iterate_maps(&plane_levers, &weights).fold(
         HashMap::new(),
