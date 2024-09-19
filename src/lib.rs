@@ -23,6 +23,20 @@ pub enum Kind {
     TripFuel
 }
 
+#[derive(Debug)]
+pub enum FailReason{
+    Bagage,
+    BagageFront,
+    BagageBack,
+    BagageWings,
+    MaxTakeOffWeight,
+    MaxWingLoad,
+    Fuel,
+    ZeroFuel,
+    LandingFuel,
+    TorqueOutOfBounds
+}
+
 impl FromStr for Kind {
     type Err = String;
 

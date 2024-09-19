@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    calc_wb::WeightAndBalance, is_inside_polygon, is_value_within_weight_limit, Kind, WeightLever,
+    calc_wb::WeightAndBalance, is_inside_polygon, is_value_within_weight_limit, FailReason, Kind,
+    WeightLever,
 };
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -35,8 +36,12 @@ pub struct Levers {
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct MaxWeights {
     pub max_take_off_weight: f32,
-    pub max_fuel: f32,
+    pub max_fuel_weight: f32,
     pub max_zero_fuel_mass: Option<f32>,
+    pub max_bagage_weight: Option<f32>,
+    pub max_bagage_weight_front: Option<f32>,
+    pub max_bagage_weight_back: Option<f32>,
+    pub max_bagage_weight_wings: Option<f32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -79,8 +84,11 @@ impl PlaneData {
         map
     }
 
-    fn is_mtow_ok(&self, prop: &PlaneProperties) -> bool {
-        prop.get_total_weights() <= self.max_weights.max_take_off_weight
+    fn is_mtow_ok(&self, prop: &PlaneProperties) -> Result<(), FailReason> {
+        if prop.get_total_weights() > self.max_weights.max_take_off_weight {
+            return Err(FailReason::MaxTakeOffWeight);
+        }
+        Ok(())
     }
 
     fn flatten_vertices(&self) -> [WeightLever; 6] {
@@ -92,7 +100,7 @@ impl PlaneData {
             .expect("Should be able to create array")
     }
 
-    fn is_zero_fuel_ok(&self, prop: &PlaneProperties) -> bool {
+    fn is_zero_fuel_ok(&self, prop: &PlaneProperties) -> Result<(), FailReason> {
         let (total_weight, total_torque) = prop
             .0
             .iter()
@@ -101,47 +109,67 @@ impl PlaneData {
                 (acc.0 + wb.weight, acc.1 + wb.torque())
             });
         let zero_fuel_point = WeightLever::new(total_weight, total_torque / total_weight);
-        is_inside_polygon(zero_fuel_point, &self.flatten_vertices(), false)
+        if !is_inside_polygon(zero_fuel_point, &self.flatten_vertices(), false) {
+            return Err(FailReason::ZeroFuel);
+        }
+        Ok(())
     }
 
-    fn is_bagage_ok(&self, prop: &PlaneProperties) -> bool {
-        let mut is_bagage_ok = true;
-        if self.levers.bagage.is_some() {
-            is_bagage_ok =
-                is_value_within_weight_limit(&prop.0, Kind::Bagage, self.levers.bagage.unwrap());
+    fn is_bagage_ok(&self, prop: &PlaneProperties) -> Result<(), FailReason> {
+        if !(self
+            .max_weights
+            .max_bagage_weight
+            .and_then(|weight| Some(is_value_within_weight_limit(&prop.0, Kind::Bagage, weight)))
+            .unwrap_or(true))
+        {
+            return Err(FailReason::Bagage);
         }
-        let mut is_bagage_back_ok = true;
-        if self.levers.bagage_back.is_some() {
-            is_bagage_back_ok = is_value_within_weight_limit(
-                &prop.0,
-                Kind::BagageBack,
-                self.levers.bagage_back.unwrap(),
-            );
+        if !(self
+            .max_weights
+            .max_bagage_weight_back
+            .and_then(|weight| {
+                Some(is_value_within_weight_limit(
+                    &prop.0,
+                    Kind::BagageBack,
+                    weight,
+                ))
+            })
+            .unwrap_or(true))
+        {
+            return Err(FailReason::BagageBack);
         }
-        let mut is_bagage_front_ok = true;
-        if self.levers.bagage_front.is_some() {
-            is_bagage_front_ok = is_value_within_weight_limit(
-                &prop.0,
-                Kind::BagageFront,
-                self.levers.bagage_front.unwrap(),
-            );
+        if !(self
+            .max_weights
+            .max_bagage_weight_front
+            .and_then(|weight| {
+                Some(is_value_within_weight_limit(
+                    &prop.0,
+                    Kind::BagageFront,
+                    weight,
+                ))
+            })
+            .unwrap_or(true))
+        {
+            return Err(FailReason::BagageFront);
         }
-        is_bagage_ok && is_bagage_back_ok && is_bagage_front_ok
+        Ok(())
     }
 
-    fn is_bagage_in_wings_ok(&self, prop: &PlaneProperties) -> bool {
-        let mut is_bagage_wings_is_ok = true;
-        if let Some(bagage_wings) = prop.0.get(&Kind::BagageWings) {
-            is_bagage_wings_is_ok = bagage_wings.weight
-                <= self
-                    .levers
-                    .bagage_wings
-                    .expect("Config is missing Bagage in wings");
+    fn is_bagage_in_wings_ok(&self, prop: &PlaneProperties) -> Result<(), FailReason> {
+        if let Some(max_weight_wings) = self.max_weights.max_bagage_weight_wings {
+            if prop
+                .0
+                .get(&Kind::BagageWings)
+                .and_then(|wings| Some(wings.weight > max_weight_wings))
+                .expect("Config contains bagage in wings but missing in input.")
+            {
+                return Err(FailReason::BagageWings);
+            }
         }
-        is_bagage_wings_is_ok
+        Ok(())
     }
 
-    fn is_max_wing_load_ok(&self, properties: &PlaneProperties) -> bool {
+    fn is_max_wing_load_ok(&self, properties: &PlaneProperties) -> Result<(), FailReason> {
         if let Some(max_weight) = self.max_weights.max_zero_fuel_mass {
             let properties_of_interest = [
                 Kind::Base,
@@ -150,28 +178,44 @@ impl PlaneData {
                 Kind::BagageBack,
                 Kind::BagageFront,
             ];
-            return properties
+            if properties
                 .0
                 .iter()
                 .filter(|(k, _)| properties_of_interest.contains(k))
                 .map(|(_, wb)| wb.weight)
                 .sum::<f32>()
-                <= max_weight;
+                > max_weight
+            {
+                return Err(FailReason::MaxWingLoad);
+            }
         }
-        true
+        Ok(())
     }
 
-    fn is_fuel_ok(&self, properties: &PlaneProperties) -> bool {
-        if let Some(fuel) = properties.0.get(&Kind::Fuel) {
-            return fuel.weight <= self.max_weights.max_fuel;
+    fn is_fuel_ok(&self, properties: &PlaneProperties) -> Result<(), FailReason> {
+        if !(properties
+            .0
+            .get(&Kind::Fuel)
+            .and_then(|fuel| Some(fuel.weight <= self.max_weights.max_fuel_weight))
+            .unwrap_or(true))
+        {
+            return Err(FailReason::Fuel);
         }
-        true
+        Ok(())
     }
-    fn is_landing_fuel_ok(&self, properties: &PlaneProperties) -> bool {
-        if let Some(fuel) = properties.0.get(&Kind::TripFuel) {
-            return fuel.weight > 0.0 && fuel.weight <= self.max_weights.max_fuel;
+
+    fn is_landing_fuel_ok(&self, properties: &PlaneProperties) -> Result<(), FailReason> {
+        if !(properties
+            .0
+            .get(&Kind::TripFuel)
+            .and_then(|fuel| {
+                Some(fuel.weight > 0.0 && fuel.weight <= self.max_weights.max_fuel_weight)
+            })
+            .unwrap_or(true))
+        {
+            return Err(FailReason::LandingFuel);
         }
-        true
+        Ok(())
     }
 }
 
@@ -244,37 +288,37 @@ impl WeightAndBalance for PlaneData {
         }
     }
 
-    fn is_weight_and_balance_ok(&self, prop: &PlaneProperties) -> bool {
-        if !self.is_mtow_ok(prop)
-            || !self.is_max_wing_load_ok(prop)
-            || !self.is_bagage_in_wings_ok(prop)
-            || !self.is_bagage_ok(prop)
-            || !self.is_fuel_ok(prop)
-            || !self.is_zero_fuel_ok(prop)
-            || !self.is_landing_fuel_ok(prop)
-        {
-            println!("limits failed");
-            return false;
-        }
+    fn is_weight_and_balance_ok(&self, prop: &PlaneProperties) -> Result<(), FailReason> {
+        self.is_mtow_ok(prop)?;
+        self.is_max_wing_load_ok(prop)?;
+        self.is_bagage_in_wings_ok(prop)?;
+        self.is_bagage_ok(prop)?;
+        self.is_fuel_ok(prop)?;
+        self.is_zero_fuel_ok(prop)?;
+        self.is_landing_fuel_ok(prop)?;
+        self.is_zero_fuel_ok(prop)?;
 
         let calc = self.calc_weight_and_balance(prop);
-        is_inside_polygon(calc, &self.flatten_vertices(), false) && self.is_zero_fuel_ok(prop)
+        if !is_inside_polygon(calc, &self.flatten_vertices(), false) {
+            return Err(FailReason::TorqueOutOfBounds);
+        }
+        Ok(())
     }
 
-    fn is_landing_weight_and_balance_ok(&self, prop: &PlaneProperties) -> bool {
-        if !self.is_mtow_ok(prop)
-            || !self.is_max_wing_load_ok(prop)
-            || !self.is_bagage_in_wings_ok(prop)
-            || !self.is_bagage_ok(prop)
-            || !self.is_fuel_ok(prop)
-            || !self.is_zero_fuel_ok(prop)
-            || !self.is_landing_fuel_ok(prop)
-        {
-            println!("limits failed");
-            return false;
-        }
+    fn is_landing_weight_and_balance_ok(&self, prop: &PlaneProperties) -> Result<(), FailReason> {
+        self.is_mtow_ok(prop)?;
+        self.is_max_wing_load_ok(prop)?;
+        self.is_bagage_in_wings_ok(prop)?;
+        self.is_bagage_ok(prop)?;
+        self.is_fuel_ok(prop)?;
+        self.is_zero_fuel_ok(prop)?;
+        self.is_landing_fuel_ok(prop)?;
+        self.is_zero_fuel_ok(prop)?;
 
         let calc = self.calc_landing_weight_and_balance(prop);
-        is_inside_polygon(calc, &self.flatten_vertices(), false) && self.is_zero_fuel_ok(prop)
+        if !is_inside_polygon(calc, &self.flatten_vertices(), false) {
+            return Err(FailReason::TorqueOutOfBounds);
+        }
+        Ok(())
     }
 }

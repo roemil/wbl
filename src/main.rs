@@ -90,22 +90,27 @@ fn main() -> Result<(), Box<dyn Error>> {
                 properties
             },
         ));
-    println!(
-        "Plane: {} has W&B that is ok: {}",
-        parsed_input.name,
-        plane_config.is_weight_and_balance_ok(&plane_properties)
-    );
+
+    let wb = plane_config.is_weight_and_balance_ok(&plane_properties);
+    if wb.is_ok() {
+        println!("Plane: {} is approved for W&B", parsed_input.name);
+
+    } else {
+        println!("Plane: {} failed W&B for: {:?}", parsed_input.name, wb.unwrap_err());
+    }
     println!(
         "Plane: {} has W&B point at: {:?}",
         parsed_input.name,
         plane_config.calc_weight_and_balance(&plane_properties)
     );
 
-    println!(
-        "Plane: {} has landing W&B that is ok: {}",
-        parsed_input.name,
-        plane_config.is_landing_weight_and_balance_ok(&plane_properties)
-    );
+    let wb_landing = plane_config.is_weight_and_balance_ok(&plane_properties);
+    if wb_landing.is_ok() {
+        println!("Plane: {} is approved for W&B when landing", parsed_input.name);
+
+    } else {
+        println!("Plane: {} failed landing W&B for: {:?}", parsed_input.name, wb_landing.unwrap_err());
+    }
 
     println!(
         "Plane: {} has a landing W&B point at: {:?}",

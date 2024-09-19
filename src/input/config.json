@@ -13,7 +13,10 @@
         },
         "max_weights": {
             "max_take_off_weight": 750.0,
-            "max_fuel": 85.0
+            "max_fuel_weight": 85.0,
+            "max_bagage_weight_front": 1.0,
+            "max_bagage_weight_back": 15.0,
+            "max_bagage_weight_wings": 40.0
         },
         "vertices": [
             [
@@ -56,7 +59,8 @@
         },
         "max_weights": {
             "max_take_off_weight": 1055.0,
-            "max_fuel": 129.0
+            "max_fuel_weight": 129.0,
+            "max_bagage_weight": 23.0
         },
         "vertices": [
             [
