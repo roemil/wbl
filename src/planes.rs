@@ -234,11 +234,7 @@ impl PlaneProperties {
     }
 
     fn get_landing_weights(&self) -> f32 {
-        self.0
-            .iter()
-            .filter(|(k, _)| **k != Kind::TripFuel)
-            .map(|(_, v)| v.weight)
-            .sum::<f32>()
+        self.get_total_weights()
             - self
                 .0
                 .get(&Kind::TripFuel)
@@ -255,11 +251,7 @@ impl PlaneProperties {
     }
 
     fn get_landing_torque(&self) -> f32 {
-        self.0
-            .iter()
-            .filter(|(k, _)| **k != Kind::TripFuel)
-            .map(|(_, v)| v.torque())
-            .sum::<f32>()
+        self.get_total_torque()
             - self
                 .0
                 .get(&Kind::TripFuel)
@@ -365,5 +357,30 @@ mod tests {
             data.is_max_wing_load_ok(&prop).unwrap_err(),
             FailReason::MaxWingLoad
         );
+    }
+
+    #[test]
+    fn landing_weight_zero() {
+        let mut prop = PlaneProperties::default();
+        prop.0.insert(Kind::Fuel, WeightLever::new(10.0, 1.0));
+        prop.0.insert(Kind::TripFuel, WeightLever::new(10.0, 1.0));
+
+        assert_eq!(prop.get_landing_weights(), 0.0);
+    }
+    #[test]
+    fn landing_weight_pos() {
+        let mut prop = PlaneProperties::default();
+        prop.0.insert(Kind::Fuel, WeightLever::new(10.0, 1.0));
+        prop.0.insert(Kind::TripFuel, WeightLever::new(5.0, 1.0));
+
+        assert_eq!(prop.get_landing_weights(), 5.0);
+    }
+    #[test]
+    fn landing_weight_neg() {
+        let mut prop = PlaneProperties::default();
+        prop.0.insert(Kind::Fuel, WeightLever::new(10.0, 1.0));
+        prop.0.insert(Kind::TripFuel, WeightLever::new(15.0, 1.0));
+
+        assert_eq!(prop.get_landing_weights(), -5.0);
     }
 }
