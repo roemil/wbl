@@ -36,13 +36,15 @@ Add your input weights in the following format:
 ```json
 {
     "name": "Name of airplane",
-    "base": "453.5",
-    "fuel": "85.0",
-    "bagage_back": "0.0",
-    "bagage_front": "1.0",
-    "bagage_wings": "2.0",
-    "pilot": "70.0",
-    "co_pilot": "0.0"
+    "values" {
+        "base": "453.5",
+        "fuel": "85.0",
+        "bagage_back": "0.0",
+        "bagage_front": "1.0",
+        "bagage_wings": "2.0",
+        "pilot": "70.0",
+        "co_pilot": "0.0"
+    }
 }
 ```
 

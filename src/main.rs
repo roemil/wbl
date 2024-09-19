@@ -6,7 +6,7 @@ use std::io::BufReader;
 use std::str::FromStr;
 use std::{collections::HashMap, fs::File};
 use wbl::calc_wb::WeightAndBalance;
-use wbl::planes::{PlaneData, PlaneProperties};
+use wbl::planes::{Input, ParsedInput, PlaneData, PlaneProperties};
 use wbl::{Kind, WeightLever};
 
 pub fn iterate_maps<'a: 'b, 'b, K: Eq + Hash + fmt::Debug, V>(
@@ -39,29 +39,31 @@ fn read_plane_config_from_json(path: &str) -> Vec<PlaneData> {
     planes_vec
 }
 
-fn parse_input_file(path: &str) -> (String, HashMap<Kind, f32>) {
+fn parse_name_from_input(input: &Input) -> String {
+    input.name.to_string().trim_matches('\"').to_string()
+}
+
+fn parse_values_from_input(input: &Input) -> HashMap<Kind, f32> {
+    let mut weights = HashMap::new();
+    for key in input.values.keys() {
+        let v = input.values.get(key).unwrap();
+        weights.insert(
+            Kind::from_str(key).expect("Incorrect format in json values"),
+            v.as_f64().expect("Expected float") as f32,
+        );
+    }
+    weights
+}
+
+fn parse_input_file(path: &str) -> ParsedInput {
     let file = File::open(path).expect("Input file not found");
     let reader = BufReader::new(file);
-    let jsons = serde_json::Deserializer::from_reader(reader)
-        .into_iter::<serde_json::Value>()
-        .flatten();
-    let mut weights = HashMap::new();
-    let mut name = String::new();
-    for input in jsons {
-        if let Some(tmp) = input.as_object() {
-            for object in tmp {
-                if object.0 == "name" {
-                    name = object.1.to_string().trim_matches('\"').to_string();
-                    continue;
-                }
-                weights.insert(
-                    Kind::from_str(object.0).expect("Invalid format of kind."),
-                    (object.1.as_f64().expect("Expected float")) as f32,
-                );
-            }
-        }
+    let input: Input = serde_json::from_reader(reader).expect("Invalid format of input file");
+
+    ParsedInput {
+        name: parse_name_from_input(&input),
+        values: parse_values_from_input(&input),
     }
-    (name, weights)
 }
 
 #[derive(Parser, Debug)]
@@ -74,37 +76,40 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     let planes = read_plane_config_from_json("./src/input/config.json");
-    let (name, weights) = parse_input_file(&args.path);
-    let plane_config: &PlaneData =
-        &planes[planes.iter().position(|plane| plane.name == name).expect("Plane missing in config")];
+    let parsed_input = parse_input_file(&args.path);
+    let plane_config: &PlaneData = &planes[planes
+        .iter()
+        .position(|plane| plane.name == parsed_input.name)
+        .expect("Plane missing in config")];
     let plane_levers = plane_config.to_lever_map();
-    let plane_properties = PlaneProperties::new(iterate_maps(&plane_levers, &weights).fold(
-        HashMap::new(),
-        move |mut props, (k, a, w)| {
-            props.insert(*k, WeightLever::new(*w, *a));
-            props
-        },
-    ));
+    let plane_properties =
+        PlaneProperties::new(iterate_maps(&plane_levers, &parsed_input.values).fold(
+            HashMap::new(),
+            move |mut properties, (k, a, w)| {
+                properties.insert(*k, WeightLever::new(*w, *a));
+                properties
+            },
+        ));
     println!(
         "Plane: {} has W&B that is ok: {}",
-        name,
+        parsed_input.name,
         plane_config.is_weight_and_balance_ok(&plane_properties)
     );
     println!(
         "Plane: {} has W&B point at: {:?}",
-        name,
+        parsed_input.name,
         plane_config.calc_weight_and_balance(&plane_properties)
     );
 
     println!(
         "Plane: {} has landing W&B that is ok: {}",
-        name,
+        parsed_input.name,
         plane_config.is_landing_weight_and_balance_ok(&plane_properties)
     );
 
     println!(
         "Plane: {} has a landing W&B point at: {:?}",
-        name,
+        parsed_input.name,
         plane_config.calc_landing_weight_and_balance(&plane_properties)
     );
 

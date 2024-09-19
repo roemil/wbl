@@ -7,6 +7,17 @@ use crate::{
 };
 
 #[derive(Serialize, Deserialize, Debug, Default)]
+pub struct Input {
+    pub name: String,
+    pub values: HashMap<String, serde_json::Value>,
+}
+
+pub struct ParsedInput {
+    pub name: String,
+    pub values: HashMap<Kind, f32>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Levers {
     pub base: f32,
     pub fuel: f32,
@@ -158,8 +169,7 @@ impl PlaneData {
     }
     fn is_landing_fuel_ok(&self, properties: &PlaneProperties) -> bool {
         if let Some(fuel) = properties.0.get(&Kind::TripFuel) {
-            return fuel.weight > 0.0
-                && fuel.weight <= self.max_weights.max_fuel;
+            return fuel.weight > 0.0 && fuel.weight <= self.max_weights.max_fuel;
         }
         true
     }
