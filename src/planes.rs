@@ -118,29 +118,24 @@ impl PlaneData {
     fn is_bagage_ok(&self, prop: &PlaneProperties) -> Result<(), FailReason> {
         if !(self
             .max_weights
-            .max_bagage_weight.map(|weight| is_value_within_weight_limit(&prop.0, Kind::Bagage, weight))
+            .max_bagage_weight
+            .map(|weight| is_value_within_weight_limit(&prop.0, Kind::Bagage, weight))
             .unwrap_or(true))
         {
             return Err(FailReason::Bagage);
         }
         if !(self
             .max_weights
-            .max_bagage_weight_back.map(|weight| is_value_within_weight_limit(
-                    &prop.0,
-                    Kind::BagageBack,
-                    weight,
-                ))
+            .max_bagage_weight_back
+            .map(|weight| is_value_within_weight_limit(&prop.0, Kind::BagageBack, weight))
             .unwrap_or(true))
         {
             return Err(FailReason::BagageBack);
         }
         if !(self
             .max_weights
-            .max_bagage_weight_front.map(|weight| is_value_within_weight_limit(
-                    &prop.0,
-                    Kind::BagageFront,
-                    weight,
-                ))
+            .max_bagage_weight_front
+            .map(|weight| is_value_within_weight_limit(&prop.0, Kind::BagageFront, weight))
             .unwrap_or(true))
         {
             return Err(FailReason::BagageFront);
@@ -152,7 +147,8 @@ impl PlaneData {
         if let Some(max_weight_wings) = self.max_weights.max_bagage_weight_wings {
             if prop
                 .0
-                .get(&Kind::BagageWings).map(|wings| wings.weight > max_weight_wings)
+                .get(&Kind::BagageWings)
+                .map(|wings| wings.weight > max_weight_wings)
                 .expect("Config contains bagage in wings but missing in input.")
             {
                 return Err(FailReason::BagageWings);
@@ -187,7 +183,8 @@ impl PlaneData {
     fn is_fuel_weight_ok(&self, properties: &PlaneProperties) -> Result<(), FailReason> {
         if !(properties
             .0
-            .get(&Kind::Fuel).map(|fuel| fuel.weight <= self.max_weights.max_fuel_weight)
+            .get(&Kind::Fuel)
+            .map(|fuel| fuel.weight <= self.max_weights.max_fuel_weight)
             .unwrap_or(true))
         {
             return Err(FailReason::Fuel);
@@ -198,7 +195,8 @@ impl PlaneData {
     fn is_landing_fuel_ok(&self, properties: &PlaneProperties) -> Result<(), FailReason> {
         if !(properties
             .0
-            .get(&Kind::TripFuel).map(|fuel| fuel.weight > 0.0 && fuel.weight <= self.max_weights.max_fuel_weight)
+            .get(&Kind::TripFuel)
+            .map(|fuel| fuel.weight > 0.0 && fuel.weight <= self.max_weights.max_fuel_weight)
             .unwrap_or(true))
         {
             return Err(FailReason::LandingFuel);
@@ -303,5 +301,69 @@ impl WeightAndBalance for PlaneData {
         let calc = self.calc_landing_weight_and_balance(prop);
         is_inside_polygon(calc, &self.flatten_vertices(), false)?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mtow_good() {
+        let mut data = PlaneData::default();
+        data.max_weights.max_take_off_weight = 10.0;
+        let mut prop = PlaneProperties::default();
+        prop.0.insert(
+            Kind::Bagage,
+            WeightLever::new(data.max_weights.max_take_off_weight - 1.0, 9.0),
+        );
+
+        assert!(data.is_mtow_ok(&prop).is_ok());
+    }
+    #[test]
+    fn mtow_bad() {
+        let mut data = PlaneData::default();
+        data.max_weights.max_take_off_weight = 10.0;
+        let mut prop = PlaneProperties::default();
+        prop.0.insert(
+            Kind::Bagage,
+            WeightLever::new(data.max_weights.max_take_off_weight + 1.0, 9.0),
+        );
+
+        assert_eq!(
+            data.is_mtow_ok(&prop).unwrap_err(),
+            FailReason::MaxTakeOffWeight
+        );
+    }
+
+    #[test]
+    fn max_wing_load_good() {
+        let mut data = PlaneData::default();
+        data.max_weights.max_zero_fuel_mass = Some(10.0);
+
+        let mut prop = PlaneProperties::default();
+        prop.0.insert(
+            Kind::Base,
+            WeightLever::new(data.max_weights.max_zero_fuel_mass.unwrap() - 1.0, 1.0),
+        );
+
+        assert!(data.is_max_wing_load_ok(&prop).is_ok());
+    }
+
+    #[test]
+    fn max_wing_load_bad() {
+        let mut data = PlaneData::default();
+        data.max_weights.max_zero_fuel_mass = Some(10.0);
+
+        let mut prop = PlaneProperties::default();
+        prop.0.insert(
+            Kind::Base,
+            WeightLever::new(data.max_weights.max_zero_fuel_mass.unwrap() + 1.0, 1.0),
+        );
+
+        assert_eq!(
+            data.is_max_wing_load_ok(&prop).unwrap_err(),
+            FailReason::MaxWingLoad
+        );
     }
 }

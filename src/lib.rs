@@ -25,7 +25,7 @@ pub enum Kind {
     TripFuel,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum FailReason {
     Bagage,
     BagageFront,
