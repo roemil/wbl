@@ -192,7 +192,7 @@ impl PlaneData {
         Ok(())
     }
 
-    fn is_fuel_ok(&self, properties: &PlaneProperties) -> Result<(), FailReason> {
+    fn is_fuel_weight_ok(&self, properties: &PlaneProperties) -> Result<(), FailReason> {
         if !(properties
             .0
             .get(&Kind::Fuel)
@@ -223,7 +223,7 @@ impl PlaneData {
         self.is_max_wing_load_ok(prop)?;
         self.is_bagage_in_wings_ok(prop)?;
         self.is_bagage_ok(prop)?;
-        self.is_fuel_ok(prop)?;
+        self.is_fuel_weight_ok(prop)?;
         self.is_zero_fuel_ok(prop)?;
         self.is_landing_fuel_ok(prop)?;
         self.is_zero_fuel_ok(prop)?;
