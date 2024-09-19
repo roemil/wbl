@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::str::FromStr;
 
 use num::complex::ComplexFloat;
 use serde::{Deserialize, Serialize};
@@ -136,16 +136,4 @@ fn is_point_in_segment(p: &WeightLever, p0: &WeightLever, p1: &WeightLever) -> b
     (det == 0.0 && prod < 0.0)
         || (p0.weight == 0.0 && p0.lever == 0.0)
         || (p1.weight == 0.0 && p1.lever == 0.0)
-}
-
-pub fn update_weight(
-    airplane_properties: &mut HashMap<Kind, WeightLever>,
-    kind: Kind,
-    weight: f32,
-) -> Result<(), String> {
-    if let Some(arm) = airplane_properties.get_mut(&kind) {
-        arm.weight = weight;
-        return Ok(());
-    }
-    Err(format!("Key ({:?}) not present in airplane", kind).to_string())
 }
