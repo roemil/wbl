@@ -94,7 +94,7 @@ impl WeightLever {
 }
 
 //ref: https://www.linkedin.com/pulse/short-formula-check-given-point-lies-inside-outside-polygon-ziemecki/
-pub fn is_inside_polygon(point: WeightLever, vertices: &[WeightLever; 6], valid_border: bool) -> bool {
+pub fn is_inside_polygon(point: WeightLever, vertices: &[WeightLever; 6], valid_border: bool) -> Result<(), FailReason> {
     let mut sum = num::complex::Complex::new(0.0, 0.0);
 
     for i in 1..vertices.len() + 1 {
@@ -102,7 +102,7 @@ pub fn is_inside_polygon(point: WeightLever, vertices: &[WeightLever; 6], valid_
         let v1 = &vertices[i % vertices.len()];
 
         if is_point_in_segment(&point, v0, v1) {
-            return valid_border;
+            if valid_border {return Ok(())} else {return Err(FailReason::TorqueOutOfBounds)}
         }
         let v1_c = num::complex::Complex::new(v1.lever, v1.weight);
         let p_c = num::complex::Complex::new(point.lever, point.weight);
@@ -110,7 +110,10 @@ pub fn is_inside_polygon(point: WeightLever, vertices: &[WeightLever; 6], valid_
         sum += num::complex::Complex::ln((v1_c - p_c) / (v0_c - p_c));
     }
 
-    sum.abs() > 1.0
+    if sum.abs() <= 1.0 {
+        return Err(FailReason::TorqueOutOfBounds);
+    }
+    Ok(())
 }
 
 fn is_point_in_segment(p: &WeightLever, p0: &WeightLever, p1: &WeightLever) -> bool {

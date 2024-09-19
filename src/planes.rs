@@ -104,12 +104,12 @@ impl PlaneData {
         let (total_weight, total_torque) = prop
             .0
             .iter()
-            .filter(|(kind, _)| **kind != Kind::Fuel)
+            .filter(|(kind, _)| **kind != Kind::Fuel || **kind != Kind::TripFuel)
             .fold((0.0_f32, 0.0_f32), |acc, (_, wb)| {
                 (acc.0 + wb.weight, acc.1 + wb.torque())
             });
         let zero_fuel_point = WeightLever::new(total_weight, total_torque / total_weight);
-        if !is_inside_polygon(zero_fuel_point, &self.flatten_vertices(), false) {
+        if let Err(_) = is_inside_polygon(zero_fuel_point, &self.flatten_vertices(), false) {
             return Err(FailReason::ZeroFuel);
         }
         Ok(())
@@ -217,6 +217,19 @@ impl PlaneData {
         }
         Ok(())
     }
+
+    fn check_limits(&self, prop: &PlaneProperties) -> Result<(), FailReason> {
+        self.is_mtow_ok(prop)?;
+        self.is_max_wing_load_ok(prop)?;
+        self.is_bagage_in_wings_ok(prop)?;
+        self.is_bagage_ok(prop)?;
+        self.is_fuel_ok(prop)?;
+        self.is_zero_fuel_ok(prop)?;
+        self.is_landing_fuel_ok(prop)?;
+        self.is_zero_fuel_ok(prop)?;
+
+        Ok(())
+    }
 }
 
 #[derive(Default)]
@@ -289,36 +302,18 @@ impl WeightAndBalance for PlaneData {
     }
 
     fn is_weight_and_balance_ok(&self, prop: &PlaneProperties) -> Result<(), FailReason> {
-        self.is_mtow_ok(prop)?;
-        self.is_max_wing_load_ok(prop)?;
-        self.is_bagage_in_wings_ok(prop)?;
-        self.is_bagage_ok(prop)?;
-        self.is_fuel_ok(prop)?;
-        self.is_zero_fuel_ok(prop)?;
-        self.is_landing_fuel_ok(prop)?;
-        self.is_zero_fuel_ok(prop)?;
-
+        self.check_limits(prop)?;
         let calc = self.calc_weight_and_balance(prop);
-        if !is_inside_polygon(calc, &self.flatten_vertices(), false) {
-            return Err(FailReason::TorqueOutOfBounds);
-        }
+        is_inside_polygon(calc, &self.flatten_vertices(), false)?;
+
         Ok(())
     }
 
     fn is_landing_weight_and_balance_ok(&self, prop: &PlaneProperties) -> Result<(), FailReason> {
-        self.is_mtow_ok(prop)?;
-        self.is_max_wing_load_ok(prop)?;
-        self.is_bagage_in_wings_ok(prop)?;
-        self.is_bagage_ok(prop)?;
-        self.is_fuel_ok(prop)?;
-        self.is_zero_fuel_ok(prop)?;
-        self.is_landing_fuel_ok(prop)?;
-        self.is_zero_fuel_ok(prop)?;
+        self.check_limits(prop)?;
 
         let calc = self.calc_landing_weight_and_balance(prop);
-        if !is_inside_polygon(calc, &self.flatten_vertices(), false) {
-            return Err(FailReason::TorqueOutOfBounds);
-        }
+        is_inside_polygon(calc, &self.flatten_vertices(), false)?;
         Ok(())
     }
 }
