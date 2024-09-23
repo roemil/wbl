@@ -1,10 +1,9 @@
-use std::{collections::HashMap, fmt::format, io};
+use std::{collections::HashMap, io};
 
 use log::error;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
-    time::{self, sleep},
 };
 use wbl::{
     calc_wb::WeightAndBalance,
