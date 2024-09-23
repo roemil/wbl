@@ -1,13 +1,10 @@
 use clap::Parser;
-use core::fmt;
 use std::error::Error;
-use std::hash::Hash;
 use std::io::BufReader;
-use std::str::FromStr;
 use std::{collections::HashMap, fs::File};
 use wbl::calc_wb::WeightAndBalance;
 use wbl::planes::{Input, ParsedInput, PlaneData, PlaneProperties};
-use wbl::{iterate_maps, parse_name_from_input, parse_values_from_input, read_plane_config_from_json, Kind, WeightLever};
+use wbl::{iterate_maps, parse_name_from_input, parse_values_from_input, read_plane_config_from_json, WeightLever};
 
 fn parse_input_file(path: &str) -> ParsedInput {
     let file = File::open(path).expect("Input file not found");
