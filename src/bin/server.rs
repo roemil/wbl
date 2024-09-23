@@ -1,8 +1,10 @@
-use std::{collections::HashMap, io};
+use std::{collections::HashMap, fmt::format, io};
 
+use log::error;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpListener, TcpStream}, time::{self, sleep},
+    net::{TcpListener, TcpStream},
+    time::{self, sleep},
 };
 use wbl::{
     calc_wb::WeightAndBalance,
@@ -44,25 +46,36 @@ async fn process(mut socket: TcpStream) -> io::Result<()> {
         println!("Client disconnected");
         return Ok(());
     }
-    if let Ok(str) = String::from_utf8(buf[0..n].to_vec()) {
-        let json = serde_json::from_str::<Input>(&str);
-        match json {
-            Ok(data) => {
-                let wb = calc(data);
-                if wb.is_ok() {
-                    println!("OK");
-                    let res = socket.write_all(b"W&B is OK").await;
-                    println!("Write success={:?}", res.is_ok());
-                } else {
-                    let _ = socket.write_all(b"W&B is NOT OK").await;
+    match String::from_utf8(buf[0..n].to_vec()) {
+        Ok(str) => {
+            let json = serde_json::from_str::<Input>(&str);
+            match json {
+                Ok(data) => {
+                    let wb = calc(data);
+                    send_reply(wb, socket).await?;
+                }
+                Err(e) => {
+                    error!("Failed to parsed json: {}", e);
+                    return Err(io::Error::new(io::ErrorKind::InvalidInput, e));
                 }
             }
-            Err(e) => println!("Failed to parsed json: {}", e),
         }
-    } else {
-        println!("Failed to parse json");
+        Err(e) => {
+            error!("Failed to parse json");
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, e));
+        }
     }
 
+    Ok(())
+}
+
+async fn send_reply(wb: Result<(), FailReason>, mut socket: TcpStream) -> Result<(), io::Error> {
+    if wb.is_ok() {
+        socket.write_all(b"W&B is OK").await?;
+    } else {
+        let reply = format!("W&B failed due to: {:?}", wb.unwrap_err());
+        socket.write_all(reply.as_bytes()).await?;
+    }
     Ok(())
 }
 

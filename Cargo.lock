@@ -4582,6 +4582,7 @@ name = "wbl"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "log",
  "num",
  "serde",
  "serde_json",
