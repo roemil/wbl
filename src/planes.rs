@@ -196,7 +196,7 @@ impl PlaneData {
         if !(properties
             .0
             .get(&Kind::TripFuel)
-            .map(|fuel| fuel.weight > 0.0 && fuel.weight <= self.max_weights.max_fuel_weight)
+            .map(|fuel| fuel.weight >= 0.0 && fuel.weight <= self.max_weights.max_fuel_weight)
             .unwrap_or(true))
         {
             return Err(FailReason::LandingFuel);
